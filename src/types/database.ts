@@ -51,7 +51,7 @@ export interface Content {
   id: string;
   module_id: string;
   title: string;
-  type: 'video' | 'document' | 'presentation' | 'link' | 'text';
+  type: 'video' | 'document' | 'presentation' | 'link' | 'text' | 'audio' | 'quiz' | 'reading';
   content_url?: string;
   content_text?: string;
   order_index: number;
