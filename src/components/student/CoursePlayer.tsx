@@ -172,6 +172,16 @@ export const CoursePlayer: React.FC = () => {
 
   useEffect(() => { fetchCourseData(); }, [fetchCourseData]);
 
+  // Prevent body scroll when mobile sidebar is open
+  useEffect(() => {
+    if (sidebarOpen && window.innerWidth < 1024) { // lg breakpoint
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [sidebarOpen]);
+
   const completedContentIds = useMemo(() => new Set(progress.filter(p => p.completed).map(p => p.content_id)), [progress]);
 
   const courseProgressPercentage = useMemo(() => {
@@ -289,19 +299,38 @@ export const CoursePlayer: React.FC = () => {
       {/* Mobile Overlay - Solo mostrar cuando no estamos en vista de módulos */}
       {!showModulesOverview && sidebarOpen && (
         <div 
-          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden" 
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden animate-in fade-in duration-300" 
           onClick={() => setSidebarOpen(false)}
+          aria-label="Cerrar sidebar"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setSidebarOpen(false);
+            }
+          }}
         />
       )}
       
       {/* Sidebar - Solo mostrar cuando no estamos en vista de módulos */}
       {!showModulesOverview && (
-      <div className={`
-          fixed lg:relative top-0 left-0 z-30 h-screen max-h-screen w-80 lg:w-80 xl:w-96 2xl:w-[400px] 
+      <div 
+        className={`
+          fixed lg:relative top-0 left-0 z-50 h-screen max-h-screen w-80 lg:w-80 xl:w-96 2xl:w-[400px] 
           bg-gray-900 border-r border-gray-700 shadow-2xl flex-shrink-0 flex flex-col
-        transform transition-transform duration-300 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Navegación del curso"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') {
+            setSidebarOpen(false);
+          }
+        }}
+      >
         {/* Sidebar Header */}
           <div className="p-4 md:p-6 border-b border-gray-700 bg-gray-800">
           <div className="flex items-center justify-between mb-4">
@@ -321,6 +350,7 @@ export const CoursePlayer: React.FC = () => {
               size="sm" 
               onClick={() => setSidebarOpen(false)}
               className="lg:hidden -mr-2 rounded-xl bg-gray-700/50 hover:bg-gray-600 text-gray-200 hover:text-white transition-all duration-200 hover:scale-105 border border-gray-600/50 hover:border-gray-500"
+              aria-label="Cerrar menú de navegación"
             >
               <X className="h-4 w-4" />
             </Button>
