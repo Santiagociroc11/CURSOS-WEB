@@ -81,7 +81,7 @@ export const StudentDashboard: React.FC = () => {
     : 0;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-8 animate-in fade-in duration-700 p-4 md:p-6 lg:p-8">
       {/* Welcome Header */}
       <div className="relative overflow-hidden">
         <div className="relative z-10">
