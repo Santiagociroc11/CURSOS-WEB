@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Eye, Users, BookOpen, Filter, Search, Grid, List, Check } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Users, BookOpen, Filter, Search, Grid, List, Check, CheckCircle, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
@@ -8,10 +8,12 @@ import { Input } from '../ui/Input';
 import { EnhancedCourseForm } from './EnhancedCourseForm';
 import { BulkOperations } from './BulkOperations';
 import { useSelection } from '../../hooks/useSelection';
+import { useAuthContext } from '../../contexts/AuthContext';
 import { Course } from '../../types/database';
 import supabase from '../../lib/supabase';
 
 export const EnhancedCourseManagement: React.FC = () => {
+  const { userProfile } = useAuthContext();
   const [courses, setCourses] = useState<Course[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,6 +101,11 @@ export const EnhancedCourseManagement: React.FC = () => {
   };
 
   const handleSaveCourse = async (formData: Partial<Course>) => {
+    if (!userProfile?.id) {
+      console.error('No user profile available');
+      return;
+    }
+
     try {
       setSubmitting(true);
       if (editingCourse) {
@@ -118,8 +125,9 @@ export const EnhancedCourseManagement: React.FC = () => {
           .from('courses')
           .insert([{
             ...formData,
-            instructor_id: '1', // Current user ID
+            instructor_id: userProfile.id, // Use actual user UUID
             is_published: false,
+            created_at: new Date().toISOString(),
           }]);
 
         if (error) throw error;
@@ -130,6 +138,14 @@ export const EnhancedCourseManagement: React.FC = () => {
       resetForm();
     } catch (error) {
       console.error('Error saving course:', error);
+      console.error('Form data being sent:', formData);
+      console.error('User ID being used:', userProfile?.id);
+      if (error && typeof error === 'object' && 'message' in error) {
+        console.error('Error message:', error.message);
+        alert(`Error al crear el curso: ${error.message}`);
+      } else {
+        alert('Error desconocido al crear el curso');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -148,6 +164,24 @@ export const EnhancedCourseManagement: React.FC = () => {
       await fetchCourses();
     } catch (error) {
       console.error('Error deleting course:', error);
+    }
+  };
+
+  const handleTogglePublished = async (courseId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ 
+          is_published: !currentStatus,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', courseId);
+
+      if (error) throw error;
+      await fetchCourses();
+    } catch (error) {
+      console.error('Error toggling course publication status:', error);
+      alert('Error al cambiar el estado del curso');
     }
   };
 
@@ -210,6 +244,44 @@ export const EnhancedCourseManagement: React.FC = () => {
       await fetchCourses();
     } catch (error) {
       console.error('Error in bulk edit:', error);
+      throw error;
+    }
+  };
+
+  const handleBulkPublish = async (courseIds: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ 
+          is_published: true,
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', courseIds);
+
+      if (error) throw error;
+      await fetchCourses();
+      clearSelection();
+    } catch (error) {
+      console.error('Error in bulk publish:', error);
+      throw error;
+    }
+  };
+
+  const handleBulkUnpublish = async (courseIds: string[]) => {
+    try {
+      const { error } = await supabase
+        .from('courses')
+        .update({ 
+          is_published: false,
+          updated_at: new Date().toISOString(),
+        })
+        .in('id', courseIds);
+
+      if (error) throw error;
+      await fetchCourses();
+      clearSelection();
+    } catch (error) {
+      console.error('Error in bulk unpublish:', error);
       throw error;
     }
   };
@@ -460,6 +532,14 @@ export const EnhancedCourseManagement: React.FC = () => {
                   <Button variant="outline" size="sm" onClick={() => openEditModal(course)}>
                     <Edit className="h-3 w-3" />
                   </Button>
+                  <Button 
+                    variant={course.is_published ? "outline" : "default"} 
+                    size="sm" 
+                    onClick={() => handleTogglePublished(course.id, course.is_published)}
+                    className={course.is_published ? "text-orange-600 hover:text-orange-800" : "bg-green-600 hover:bg-green-700 text-white"}
+                  >
+                    {course.is_published ? <XCircle className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
+                  </Button>
                   <Button variant="danger" size="sm" onClick={() => handleDeleteCourse(course.id)}>
                     <Trash2 className="h-3 w-3" />
                   </Button>
@@ -555,6 +635,13 @@ export const EnhancedCourseManagement: React.FC = () => {
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
+                            onClick={() => handleTogglePublished(course.id, course.is_published)}
+                            className={course.is_published ? "text-orange-600 hover:text-orange-800" : "text-green-600 hover:text-green-800"}
+                            title={course.is_published ? "Despublicar curso" : "Publicar curso"}
+                          >
+                            {course.is_published ? <XCircle className="h-4 w-4" /> : <CheckCircle className="h-4 w-4" />}
+                          </button>
+                          <button 
                             onClick={() => handleDeleteCourse(course.id)}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -599,6 +686,8 @@ export const EnhancedCourseManagement: React.FC = () => {
         onBulkDelete={handleBulkDelete}
         onBulkDuplicate={handleBulkDuplicate}
         onBulkEdit={handleBulkEdit}
+        onBulkPublish={handleBulkPublish}
+        onBulkUnpublish={handleBulkUnpublish}
         editableFields={[
           { key: 'category', label: 'Categoría', type: 'text' },
           { key: 'difficulty_level', label: 'Dificultad', type: 'select', options: ['beginner', 'intermediate', 'advanced'] },

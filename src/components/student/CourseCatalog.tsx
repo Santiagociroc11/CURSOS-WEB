@@ -44,7 +44,7 @@ export const CourseCatalog: React.FC<CourseCatalogProps> = ({ onEnroll, enrolled
         const isEnrolled = enrolledCourseIds.includes(course.id);
         return (
           <Card key={course.id} hover>
-            <div className="aspect-video bg-gray-200 rounded-t-xl overflow-hidden">
+            <div className="aspect-square bg-gray-200 rounded-t-xl overflow-hidden">
               {course.thumbnail_url ? (
                 <img src={course.thumbnail_url} alt={course.title} className="w-full h-full object-cover" />
               ) : (

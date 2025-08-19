@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import supabase from '../../lib/supabase';
+import { getOptimizedProgressData, calculateProgressFromData, updateProgressInDB } from './OptimizedProgressCalculator';
 import { Enrollment } from '../../types/database';
 import { Card, CardContent } from '../ui/Card';
 import { BookOpen, CheckCircle, Award, Target } from 'lucide-react';
@@ -32,103 +33,21 @@ export const StudentProgress: React.FC = () => {
     const fetchEnrollmentsWithProgress = async () => {
       setLoading(true);
       try {
-        // Obtener inscripciones básicas
-        const { data: enrollmentsData, error: enrollmentsError } = await supabase
-          .from('enrollments')
-          .select('*, course:courses(title, id)')
-          .eq('user_id', userProfile.id);
+        // 🚀 OPTIMIZACIÓN: Una sola consulta por tabla en lugar de N+1
+        const progressData = await getOptimizedProgressData(userProfile.id);
+        const enrollmentsWithProgress = calculateProgressFromData(progressData);
         
-        if (enrollmentsError) throw enrollmentsError;
+        // Actualizar progreso en BD de manera optimizada
+        await updateProgressInDB(enrollmentsWithProgress);
         
-        const enrollmentsWithProgress: EnrollmentWithProgress[] = [];
+        // Convertir al formato esperado por este componente
+        const formattedEnrollments: EnrollmentWithProgress[] = enrollmentsWithProgress.map(enrollment => ({
+          ...enrollment,
+          course: enrollment.course as { title: string; id: string },
+          realProgress: enrollment.realProgress
+        }));
         
-        // Para cada inscripción, calcular el progreso real
-        for (const enrollment of (enrollmentsData || [])) {
-          const courseId = enrollment.course_id;
-          
-          // 1. Obtener módulos del curso
-          const { data: courseModules } = await supabase
-            .from('modules')
-            .select('id')
-            .eq('course_id', courseId);
-          
-          const moduleIds = courseModules?.map(m => m.id) || [];
-          
-          // 2. Obtener contenido de los módulos
-          const { data: courseContents } = moduleIds.length > 0 
-            ? await supabase.from('content').select('id').in('module_id', moduleIds)
-            : { data: [] };
-          
-          // 3. Obtener evaluaciones del curso
-          const { data: courseAssessments } = await supabase
-            .from('assessments')
-            .select('id')
-            .eq('course_id', courseId);
-          
-          // 4. Obtener progreso del usuario para este curso
-          const contentIds = courseContents?.map(c => c.id) || [];
-          const { data: userProgress } = contentIds.length > 0
-            ? await supabase
-                .from('progress')
-                .select('content_id')
-                .eq('user_id', userProfile.id)
-                .eq('completed', true)
-                .in('content_id', contentIds)
-            : { data: [] };
-          
-          // 5. Obtener evaluaciones aprobadas del usuario para este curso
-          const assessmentIds = courseAssessments?.map(a => a.id) || [];
-          const { data: userAttempts } = assessmentIds.length > 0
-            ? await supabase
-                .from('attempt_results')
-                .select('assessment_id')
-                .eq('user_id', userProfile.id)
-                .eq('passed', true)
-                .in('assessment_id', assessmentIds)
-            : { data: [] };
-          
-          // 6. Calcular estadísticas
-          const totalContent = courseContents?.length || 0;
-          const contentCompleted = userProgress?.length || 0;
-          const contentPercentage = totalContent > 0 ? Math.round((contentCompleted / totalContent) * 100) : 0;
-          
-          const totalAssessments = courseAssessments?.length || 0;
-          const assessmentsCompleted = userAttempts?.length || 0;
-          const assessmentPercentage = totalAssessments > 0 ? Math.round((assessmentsCompleted / totalAssessments) * 100) : 0;
-          
-          // 7. Calcular progreso general (70% contenido + 30% evaluaciones)
-          const overallPercentage = totalContent > 0 || totalAssessments > 0
-            ? Math.round((contentPercentage * 0.7) + (assessmentPercentage * 0.3))
-            : 0;
-          
-          // 8. Actualizar el progreso en la tabla enrollments si es diferente
-          const currentStoredProgress = enrollment.progress_percentage || 0;
-          if (Math.abs(currentStoredProgress - overallPercentage) > 1) { // Solo actualizar si hay diferencia significativa
-            await supabase
-              .from('enrollments')
-              .update({ 
-                progress_percentage: overallPercentage,
-                last_accessed_at: new Date().toISOString()
-              })
-              .eq('id', enrollment.id);
-          }
-          
-          enrollmentsWithProgress.push({
-            ...enrollment,
-            course: enrollment.course as { title: string; id: string },
-            realProgress: {
-              contentCompleted,
-              totalContent,
-              contentPercentage,
-              assessmentsCompleted,
-              totalAssessments,
-              assessmentPercentage,
-              overallPercentage
-            }
-          });
-        }
-        
-        setEnrollments(enrollmentsWithProgress);
+        setEnrollments(formattedEnrollments);
       } catch (error) {
         console.error('Error fetching enrollments with progress:', error);
       } finally {

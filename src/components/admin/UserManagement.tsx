@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
-import { Plus, Edit, Trash2 } from 'lucide-react';
+import { UserImporter } from './UserImporter';
+import { Plus, Edit, Trash2, Upload, Users } from 'lucide-react';
 
 export const UserManagement: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isImporterOpen, setIsImporterOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<Partial<User>>({
     full_name: '',
@@ -89,8 +91,20 @@ export const UserManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
-        <Button onClick={openCreateModal}><Plus className="h-4 w-4 mr-2" />Nuevo Usuario</Button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Usuarios</h1>
+          <p className="text-gray-600 mt-1">Total de usuarios: {users.length}</p>
+        </div>
+        <div className="flex space-x-3">
+          <Button variant="outline" onClick={() => setIsImporterOpen(true)}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importar Masivo
+          </Button>
+          <Button onClick={openCreateModal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Usuario
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -125,6 +139,7 @@ export const UserManagement: React.FC = () => {
         </CardContent>
       </Card>
 
+      {/* Modal de creación/edición individual */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editingUser ? 'Editar Usuario' : 'Crear Usuario'}>
         <div className="space-y-4">
           <Input label="Nombre Completo" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
@@ -146,6 +161,19 @@ export const UserManagement: React.FC = () => {
             <Button onClick={handleSaveUser}>{editingUser ? 'Guardar Cambios' : 'Crear Usuario'}</Button>
           </div>
         </div>
+      </Modal>
+
+      {/* Modal de importación masiva */}
+      <Modal 
+        isOpen={isImporterOpen} 
+        onClose={() => setIsImporterOpen(false)} 
+        title="Importación Masiva de Usuarios"
+        size="xl"
+      >
+        <UserImporter onUsersImported={() => {
+          fetchUsers(); // Recargar la lista de usuarios
+          setIsImporterOpen(false);
+        }} />
       </Modal>
     </div>
   );

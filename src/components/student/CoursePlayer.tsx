@@ -28,6 +28,29 @@ const isYouTubeUrl = (url: string): boolean => {
   return url.includes('youtube.com') || url.includes('youtu.be');
 };
 
+// Helper function to convert Google Drive URLs to embed format
+const getGoogleDriveEmbedUrl = (url: string): string => {
+  // Handle both sharing and file view URLs
+  const shareRegex = /(?:https:\/\/drive\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/;
+  const viewRegex = /(?:https:\/\/drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
+  
+  const shareMatch = url.match(shareRegex);
+  const viewMatch = url.match(viewRegex);
+  
+  if (shareMatch) {
+    return `https://drive.google.com/file/d/${shareMatch[1]}/preview`;
+  } else if (viewMatch) {
+    return `https://drive.google.com/file/d/${viewMatch[1]}/preview`;
+  }
+  
+  return url;
+};
+
+// Helper function to check if URL is Google Drive
+const isGoogleDriveUrl = (url: string): boolean => {
+  return url.includes('drive.google.com');
+};
+
 // Helper function to translate content types to Spanish
 const getContentTypeLabel = (type: string): string => {
   const typeLabels: Record<string, string> = {
@@ -58,6 +81,7 @@ export const CoursePlayer: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showModulesOverview, setShowModulesOverview] = useState(true);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
+  const [completionAnimation, setCompletionAnimation] = useState(false);
 
   const fetchCourseData = useCallback(async () => {
     console.log('fetchCourseData called with:', { courseId, userProfile: !!userProfile });
@@ -159,11 +183,42 @@ export const CoursePlayer: React.FC = () => {
   const handleMarkComplete = async () => {
     if (!currentContent || !userProfile) return;
     try {
-      await supabase.from('progress').upsert({ user_id: userProfile.id, content_id: currentContent.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,content_id' });
-      await supabase.from('enrollments').update({ progress_percentage: courseProgressPercentage, last_accessed_at: new Date().toISOString() }).match({ user_id: userProfile.id, course_id: courseId });
-      fetchCourseData(); // Refetch to get next uncompleted
+      // Trigger completion animation
+      setCompletionAnimation(true);
+      
+      // Update progress in database
+      await supabase.from('progress').upsert({ 
+        user_id: userProfile.id, 
+        content_id: currentContent.id, 
+        completed: true, 
+        completed_at: new Date().toISOString() 
+      }, { onConflict: 'user_id,content_id' });
+      
+      // Update enrollment progress
+      await supabase.from('enrollments').update({ 
+        progress_percentage: courseProgressPercentage, 
+        last_accessed_at: new Date().toISOString() 
+      }).match({ user_id: userProfile.id, course_id: courseId });
+      
+      // Update local state without refetching (to avoid losing current position)
+      setProgress(prev => [
+        ...prev.filter(p => p.content_id !== currentContent.id),
+        { 
+          user_id: userProfile.id, 
+          content_id: currentContent.id, 
+          completed: true, 
+          completed_at: new Date().toISOString() 
+        }
+      ]);
+      
+      // Hide animation after 2 seconds
+      setTimeout(() => {
+        setCompletionAnimation(false);
+      }, 2000);
+      
     } catch (error) {
       console.error('Error marking as complete:', error);
+      setCompletionAnimation(false);
     }
   };
 
@@ -182,7 +237,55 @@ export const CoursePlayer: React.FC = () => {
   if (!course) return <div>Course not found.</div>;
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <>
+      {/* Custom CSS for animations */}
+      <style>{`
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleIn {
+          from { 
+            transform: scale(0.7) translateY(20px); 
+            opacity: 0; 
+          }
+          to { 
+            transform: scale(1) translateY(0); 
+            opacity: 1; 
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .animate-scaleIn {
+          animation: scaleIn 0.4s ease-out;
+        }
+      `}</style>
+      
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Completion Animation */}
+      {completionAnimation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 animate-fadeIn">
+          <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center transform animate-scaleIn shadow-2xl">
+            <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 animate-pulse shadow-lg">
+              <CheckCircle className="h-10 w-10 text-white" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">¡Excelente!</h3>
+            <p className="text-gray-600 mb-2">
+              Has completado exitosamente:
+            </p>
+            <p className="text-gray-800 font-semibold text-lg mb-4">
+              "{currentContent?.title}"
+            </p>
+            <div className="flex items-center justify-center space-x-2 text-green-600">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Mobile Overlay - Solo mostrar cuando no estamos en vista de módulos */}
       {!showModulesOverview && sidebarOpen && (
         <div 
@@ -206,7 +309,7 @@ export const CoursePlayer: React.FC = () => {
               variant="ghost" 
               size="sm" 
               onClick={() => navigate('/student')}
-              className="-ml-2 rounded-xl bg-gray-700/50 hover:bg-gray-600 text-gray-200 hover:text-white transition-all duration-200 hover:scale-105 group border border-gray-600/50 hover:border-gray-500"
+              className="-ml-2 rounded-xl bg-white/10 hover:bg-white/20 text-white hover:text-white transition-all duration-200 hover:scale-105 group border border-white/20 hover:border-white/30 backdrop-blur-sm"
             >
               <ChevronLeft className="h-4 w-4 mr-2 transition-transform duration-200 group-hover:-translate-x-1" />
               Mis Cursos
@@ -524,7 +627,7 @@ export const CoursePlayer: React.FC = () => {
                           <div className="flex items-center justify-between mb-8">
                             <button 
                               onClick={() => setExpandedModule(null)}
-                              className="flex items-center bg-gray-600/70 hover:bg-gray-500 text-gray-100 hover:text-white transition-all duration-200 px-4 py-2 rounded-xl border border-gray-500/70 hover:border-gray-400"
+                              className="flex items-center bg-white/10 hover:bg-white/20 text-white hover:text-white transition-all duration-200 px-4 py-2 rounded-xl border border-white/20 hover:border-white/30 backdrop-blur-sm"
                             >
                               <ChevronLeft className="h-5 w-5 mr-2" />
                               Volver a rutas
@@ -721,7 +824,7 @@ export const CoursePlayer: React.FC = () => {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setSidebarOpen(true)}
-                    className="rounded-xl bg-gray-700/30 hover:bg-gray-600/50 text-gray-200 hover:text-white transition-all duration-200 hover:scale-105 border border-gray-600/30 hover:border-gray-500/50"
+                    className="rounded-xl bg-white/10 hover:bg-white/20 text-white hover:text-white transition-all duration-200 hover:scale-105 border border-white/20 hover:border-white/30 backdrop-blur-sm"
                   >
                     <Menu className="h-4 w-4 mr-2" />
                     Contenidos
@@ -738,7 +841,7 @@ export const CoursePlayer: React.FC = () => {
                         setShowModulesOverview(true);
                         setExpandedModule(null);
                       }}
-                      className="-ml-2 rounded-xl bg-gray-600/70 hover:bg-gray-500 text-gray-100 hover:text-white transition-all duration-200 border border-gray-500/70 hover:border-gray-400 px-3 py-2"
+                      className="-ml-2 rounded-xl bg-white/10 hover:bg-white/20 text-white hover:text-white transition-all duration-200 border border-white/20 hover:border-white/30 backdrop-blur-sm px-3 py-2"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       Volver a rutas
@@ -762,12 +865,14 @@ export const CoursePlayer: React.FC = () => {
                 </div>
                 <Button 
                   onClick={handleMarkComplete} 
-                  disabled={completedContentIds.has(currentContent.id)}
+                  disabled={completedContentIds.has(currentContent.id) || completionAnimation}
                   className={`
                     px-4 md:px-6 py-2 md:py-3 rounded-xl font-semibold transition-all duration-200 hover:scale-105 text-sm md:text-base
                     ${completedContentIds.has(currentContent.id) 
                       ? 'bg-gray-700 text-gray-400 cursor-not-allowed' 
-                      : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
+                      : completionAnimation
+                        ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg animate-pulse'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl'
                     }
                   `}
                 >
@@ -775,6 +880,12 @@ export const CoursePlayer: React.FC = () => {
                     <>
                       <CheckCircle className="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2" />
                       <span className="hidden sm:inline">Completado</span>
+                      <span className="sm:hidden">✓</span>
+                    </>
+                  ) : completionAnimation ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 md:h-5 md:w-5 mr-1 md:mr-2 animate-spin" />
+                      <span className="hidden sm:inline">¡Completado!</span>
                       <span className="sm:hidden">✓</span>
                     </>
                   ) : (
@@ -799,6 +910,15 @@ export const CoursePlayer: React.FC = () => {
                           width="100%" 
                           height="100%" 
                           src={getYouTubeEmbedUrl(currentContent.content_url)}
+                          title={currentContent.title}
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      ) : isGoogleDriveUrl(currentContent.content_url) ? (
+                        <iframe 
+                          width="100%" 
+                          height="100%" 
+                          src={getGoogleDriveEmbedUrl(currentContent.content_url)}
                           title={currentContent.title}
                           allowFullScreen
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -987,7 +1107,7 @@ export const CoursePlayer: React.FC = () => {
                 variant="ghost" 
                 size="sm" 
                 onClick={() => setSidebarOpen(true)}
-                className="rounded-xl bg-gray-700/50 hover:bg-gray-600 text-gray-200 hover:text-white transition-all duration-200 hover:scale-105 border border-gray-600/50 hover:border-gray-500"
+                className="rounded-xl bg-white/10 hover:bg-white/20 text-white hover:text-white transition-all duration-200 hover:scale-105 border border-white/20 hover:border-white/30 backdrop-blur-sm"
               >
                 <Menu className="h-4 w-4 mr-2" />
                 Ver Contenidos del Curso
@@ -1015,6 +1135,7 @@ export const CoursePlayer: React.FC = () => {
           </div>
         )}
       </main>
-    </div>
+      </div>
+    </>
   );
 };

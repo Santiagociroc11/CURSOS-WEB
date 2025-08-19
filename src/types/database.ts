@@ -3,6 +3,7 @@ export interface User {
   email: string;
   password: string;
   full_name: string;
+  phone?: string;
   role: 'admin' | 'student';
   avatar_url?: string;
   created_at: string;
@@ -14,6 +15,7 @@ export interface PublicUser {
   id: string;
   email: string;
   full_name: string;
+  phone?: string;
   role: 'admin' | 'student';
   avatar_url?: string;
   created_at: string;

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Input } from '../ui/Input';
 import { EnhancedContentForm } from './EnhancedContentForm';
 import { DragDropList } from './DragDropList';
+import { DriveContentImporter } from './DriveContentImporter';
 import { 
   Plus, 
   Edit, 
@@ -22,7 +23,8 @@ import {
   Eye,
   Settings,
   Copy,
-  MoreVertical
+  MoreVertical,
+  Upload
 } from 'lucide-react';
 
 interface ModuleWithContent extends Module {
@@ -42,9 +44,11 @@ export const EnhancedCourseEditor: React.FC = () => {
   // Modal states
   const [isModuleModalOpen, setIsModuleModalOpen] = useState(false);
   const [isContentModalOpen, setIsContentModalOpen] = useState(false);
+  const [isDriveImporterOpen, setIsDriveImporterOpen] = useState(false);
   const [editingModule, setEditingModule] = useState<Module | null>(null);
   const [editingContent, setEditingContent] = useState<Content | null>(null);
   const [currentModuleId, setCurrentModuleId] = useState<string | null>(null);
+  const [importerModuleId, setImporterModuleId] = useState<string | null>(null);
   
   // Form states
   const [moduleFormData, setModuleFormData] = useState({
@@ -316,6 +320,11 @@ export const EnhancedCourseEditor: React.FC = () => {
     setIsContentModalOpen(true);
   };
 
+  const openDriveImporter = (moduleId: string) => {
+    setImporterModuleId(moduleId);
+    setIsDriveImporterOpen(true);
+  };
+
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
   if (!course) return <div>Curso no encontrado.</div>;
 
@@ -427,6 +436,15 @@ export const EnhancedCourseEditor: React.FC = () => {
                     >
                       <Plus className="h-3 w-3 mr-1" />
                       Contenido
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => openDriveImporter(module.id)}
+                      className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Drive
                     </Button>
                     <Button 
                       size="sm" 
@@ -569,6 +587,23 @@ export const EnhancedCourseEditor: React.FC = () => {
           onCancel={() => setIsContentModalOpen(false)}
           isSubmitting={saving}
         />
+      </Modal>
+
+      <Modal
+        isOpen={isDriveImporterOpen}
+        onClose={() => setIsDriveImporterOpen(false)}
+        title="Importar desde Google Drive"
+        size="xl"
+      >
+        {importerModuleId && (
+          <DriveContentImporter
+            moduleId={importerModuleId}
+            onContentAdded={() => {
+              fetchData(); // Refrescar datos del curso
+              setIsDriveImporterOpen(false);
+            }}
+          />
+        )}
       </Modal>
     </div>
   );

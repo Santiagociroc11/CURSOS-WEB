@@ -8,6 +8,7 @@ import { Enrollment } from '../../types/database';
 import supabase from '../../lib/supabase';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { CourseCatalog } from './CourseCatalog';
+import { getOptimizedProgressData, calculateProgressFromData, updateProgressInDB } from './OptimizedProgressCalculator';
 
 export const StudentDashboard: React.FC = () => {
   const { userProfile } = useAuthContext();
@@ -17,13 +18,21 @@ export const StudentDashboard: React.FC = () => {
   const fetchEnrollments = useCallback(async () => {
     if (!userProfile) return;
     try {
-      const { data, error } = await supabase
-        .from('enrollments')
-        .select('*, course:courses(*)')
-        .eq('user_id', userProfile.id)
-        .order('last_accessed_at', { ascending: false, nullsFirst: false });
-      if (error) throw error;
-      setEnrollments(data || []);
+      // 🚀 OPTIMIZACIÓN: Una sola consulta por tabla en lugar de N+1
+      const progressData = await getOptimizedProgressData(userProfile.id);
+      const enrollmentsWithProgress = calculateProgressFromData(progressData);
+      
+      // Actualizar progreso en BD de manera optimizada
+      await updateProgressInDB(enrollmentsWithProgress);
+      
+      // Ordenar por último acceso
+      enrollmentsWithProgress.sort((a, b) => {
+        const dateA = new Date(a.last_accessed_at || 0).getTime();
+        const dateB = new Date(b.last_accessed_at || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      setEnrollments(enrollmentsWithProgress);
     } catch (error) {
       console.error('Error fetching enrollments:', error);
     } finally {
@@ -54,7 +63,7 @@ export const StudentDashboard: React.FC = () => {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Cargando tu dashboard...</p>
+          <p className="text-gray-600 font-medium">Calculando tu progreso real...</p>
         </div>
       </div>
     );
@@ -111,7 +120,7 @@ export const StudentDashboard: React.FC = () => {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <Link to={`/student/courses/${enrollment.course.id}`}>
-                  <div className="relative aspect-video bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                  <div className="relative aspect-square bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
                     {enrollment.course.thumbnail_url ? (
                       <img 
                         src={enrollment.course.thumbnail_url} 

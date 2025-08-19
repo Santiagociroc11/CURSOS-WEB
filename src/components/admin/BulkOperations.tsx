@@ -11,7 +11,9 @@ import {
   Upload,
   Download,
   AlertTriangle,
-  Loader2
+  Loader2,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 interface BulkItem {
@@ -28,6 +30,8 @@ interface BulkOperationsProps {
   onBulkDuplicate?: (itemIds: string[]) => Promise<void>;
   onBulkMove?: (itemIds: string[], targetId: string) => Promise<void>;
   onBulkEdit?: (itemIds: string[], changes: Record<string, any>) => Promise<void>;
+  onBulkPublish?: (itemIds: string[]) => Promise<void>;
+  onBulkUnpublish?: (itemIds: string[]) => Promise<void>;
   moveTargets?: { id: string; title: string; }[];
   editableFields?: { key: string; label: string; type: 'text' | 'select'; options?: string[]; }[];
 }
@@ -39,6 +43,8 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
   onBulkDuplicate,
   onBulkMove,
   onBulkEdit,
+  onBulkPublish,
+  onBulkUnpublish,
   moveTargets = [],
   editableFields = []
 }) => {
@@ -105,6 +111,32 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
       setEditChanges({});
     } catch (error) {
       console.error('Error in bulk edit:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedItems.length === 0 || !onBulkPublish) return;
+    
+    try {
+      setIsProcessing(true);
+      await onBulkPublish(selectedItems.map(item => item.id));
+    } catch (error) {
+      console.error('Error in bulk publish:', error);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkUnpublish = async () => {
+    if (selectedItems.length === 0 || !onBulkUnpublish) return;
+    
+    try {
+      setIsProcessing(true);
+      await onBulkUnpublish(selectedItems.map(item => item.id));
+    } catch (error) {
+      console.error('Error in bulk unpublish:', error);
     } finally {
       setIsProcessing(false);
     }
@@ -201,6 +233,42 @@ export const BulkOperations: React.FC<BulkOperationsProps> = ({
               >
                 <Edit className="h-4 w-4 mr-1" />
                 Editar
+              </Button>
+            )}
+
+            {/* Publish */}
+            {onBulkPublish && (
+              <Button 
+                size="sm" 
+                variant="default"
+                onClick={handleBulkPublish}
+                disabled={isProcessing}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4 mr-1" />
+                )}
+                Publicar
+              </Button>
+            )}
+
+            {/* Unpublish */}
+            {onBulkUnpublish && (
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={handleBulkUnpublish}
+                disabled={isProcessing}
+                className="text-orange-600 hover:text-orange-800 border-orange-600 hover:border-orange-800"
+              >
+                {isProcessing ? (
+                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                ) : (
+                  <XCircle className="h-4 w-4 mr-1" />
+                )}
+                Despublicar
               </Button>
             )}
 

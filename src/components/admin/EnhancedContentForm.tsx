@@ -34,6 +34,16 @@ const isYouTubeUrl = (url: string): boolean => {
   return /(?:youtube\.com\/watch\?v=|youtu\.be\/)/.test(url);
 };
 
+// Helper to detect Google Drive URLs
+const isGoogleDriveUrl = (url: string): boolean => {
+  return url.includes('drive.google.com');
+};
+
+// Helper to check if URL is a supported video URL
+const isSupportedVideoUrl = (url: string): boolean => {
+  return isYouTubeUrl(url) || isGoogleDriveUrl(url);
+};
+
 // Helper to convert YouTube URLs to embed format
 const getYouTubeEmbedUrl = (url: string): string => {
   const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/;
@@ -41,6 +51,23 @@ const getYouTubeEmbedUrl = (url: string): string => {
   if (match) {
     return `https://www.youtube.com/embed/${match[1]}`;
   }
+  return url;
+};
+
+// Helper to convert Google Drive URLs to embed format
+const getGoogleDriveEmbedUrl = (url: string): string => {
+  const shareRegex = /(?:https:\/\/drive\.google\.com\/file\/d\/)([a-zA-Z0-9_-]+)/;
+  const viewRegex = /(?:https:\/\/drive\.google\.com\/open\?id=)([a-zA-Z0-9_-]+)/;
+  
+  const shareMatch = url.match(shareRegex);
+  const viewMatch = url.match(viewRegex);
+  
+  if (shareMatch) {
+    return `https://drive.google.com/file/d/${shareMatch[1]}/preview`;
+  } else if (viewMatch) {
+    return `https://drive.google.com/file/d/${viewMatch[1]}/preview`;
+  }
+  
   return url;
 };
 
@@ -106,7 +133,7 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
       case 'content_url':
         if (type !== 'text' && !value?.trim()) return 'La URL es requerida para este tipo de contenido';
         if (value && !isValidUrl(value)) return 'URL inválida';
-        if (type === 'video' && value && !isYouTubeUrl(value)) return 'Para videos, se requiere una URL de YouTube';
+        if (type === 'video' && value && !isSupportedVideoUrl(value)) return 'Para videos, se requiere una URL de YouTube o Google Drive';
         break;
       case 'content_text':
         if (type === 'text' && !value?.trim()) return 'El contenido de texto es requerido';
@@ -143,6 +170,8 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
         case 'video':
           if (isYouTubeUrl(url)) {
             setPreviewContent(getYouTubeEmbedUrl(url));
+          } else if (isGoogleDriveUrl(url)) {
+            setPreviewContent(getGoogleDriveEmbedUrl(url));
           } else {
             setPreviewContent(url);
           }
@@ -345,12 +374,12 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
       ) : (
         <div>
           <Input
-            label={`URL del ${formData.type === 'video' ? 'Video (YouTube)' : 'Contenido'}`}
+            label={`URL del ${formData.type === 'video' ? 'Video (YouTube o Google Drive)' : 'Contenido'}`}
             value={formData.content_url || ''}
             onChange={(e) => updateField('content_url', e.target.value)}
             placeholder={
               formData.type === 'video' 
-                ? 'https://www.youtube.com/watch?v=...' 
+                ? 'https://www.youtube.com/watch?v=... o https://drive.google.com/file/d/...' 
                 : 'https://ejemplo.com/recurso'
             }
             required
@@ -359,7 +388,7 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
           />
           {formData.type === 'video' && (
             <p className="mt-1 text-xs text-gray-500">
-              Solo se admiten URLs de YouTube. El video se mostrará usando el reproductor integrado.
+              Se admiten URLs de YouTube y Google Drive. El video se mostrará usando el reproductor integrado.
             </p>
           )}
         </div>
