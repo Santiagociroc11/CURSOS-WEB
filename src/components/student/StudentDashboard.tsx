@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, PlayCircle } from 'lucide-react';
+import { BookOpen, PlayCircle, Clock, Award, TrendingUp, Zap } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Enrollment } from '../../types/database';
@@ -50,64 +50,136 @@ export const StudentDashboard: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div></div>;
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Cargando tu dashboard...</p>
+        </div>
+      </div>
+    );
   }
 
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 18) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
+  const totalProgress = enrollments.length > 0 
+    ? Math.round(enrollments.reduce((sum, e) => sum + (e.progress_percentage || 0), 0) / enrollments.length)
+    : 0;
+
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Mis Cursos</h1>
-        <p className="text-gray-600 mt-2">Continúa tu aprendizaje y explora nuevos cursos.</p>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      {/* Welcome Header */}
+      <div className="relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex items-center space-x-3 mb-2">
+            <div className="w-12 h-12 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl flex items-center justify-center">
+              <Zap className="h-6 w-6 text-gray-700" />
+            </div>
+            <div>
+              <p className="text-lg font-medium text-gray-600">{getGreeting()}, {userProfile?.full_name?.split(' ')[0]}</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                Tu Campus Virtual
+              </h1>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {enrollments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {enrollments.map((enrollment) => (
-            <Card key={enrollment.id} hover>
-              <Link to={`/student/courses/${enrollment.course.id}`}>
-                <div className="aspect-video bg-gray-200 rounded-t-xl overflow-hidden">
-                  {enrollment.course.thumbnail_url ? (
-                    <img src={enrollment.course.thumbnail_url} alt={enrollment.course.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400"><BookOpen className="h-12 w-12" /></div>
-                  )}
-                </div>
-              </Link>
-              <CardContent className="p-4">
-                <h3 className="font-semibold text-gray-900 text-lg">{enrollment.course.title}</h3>
-                <div className="mt-2">
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>Progreso</span>
-                    <span>{enrollment.progress_percentage}%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${enrollment.progress_percentage}%` }} />
-                  </div>
-                </div>
-                <Link to={`/student/courses/${enrollment.course.id}`} className="mt-4 block">
-                  <Button className="w-full">
-                    <PlayCircle className="h-4 w-4 mr-2" />
-                    {enrollment.progress_percentage > 0 ? 'Continuar' : 'Comenzar'}
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12 px-4 border-2 border-dashed border-gray-300 rounded-lg">
-          <h3 className="text-lg font-medium text-gray-900">Aún no te has inscrito a ningún curso</h3>
-          <p className="text-sm text-gray-500 mt-1">Explora el catálogo y encuentra tu próxima aventura de aprendizaje.</p>
-        </div>
-      )}
 
+      {/* My Courses Section */}
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Explorar Nuevos Cursos</h2>
-          <p className="text-gray-600 mt-1">Encuentra tu próximo desafío.</p>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Mis Cursos</h2>
+          {enrollments.length > 0 && (
+            <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+              {enrollments.length} curso{enrollments.length !== 1 ? 's' : ''} activo{enrollments.length !== 1 ? 's' : ''}
+            </span>
+          )}
         </div>
-        <CourseCatalog onEnroll={handleEnroll} enrolledCourseIds={enrollments.map(e => e.course_id)} />
+
+        {enrollments.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {enrollments.map((enrollment, index) => (
+              <Card 
+                key={enrollment.id} 
+                className="group border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] overflow-hidden"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <Link to={`/student/courses/${enrollment.course.id}`}>
+                  <div className="relative aspect-video bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                    {enrollment.course.thumbnail_url ? (
+                      <img 
+                        src={enrollment.course.thumbnail_url} 
+                        alt={enrollment.course.title} 
+                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" 
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="h-16 w-16 text-gray-500 transition-transform duration-300 group-hover:scale-110" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
+                    
+                    {/* Progress overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                      <div className="w-full bg-white/20 rounded-full h-2 backdrop-blur-sm">
+                        <div 
+                          className="bg-white h-2 rounded-full transition-all duration-500" 
+                          style={{ width: `${enrollment.progress_percentage}%` }} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+
+                <CardContent className="p-6">
+                  <h3 className="font-bold text-gray-900 text-xl mb-2 line-clamp-2 leading-tight">
+                    {enrollment.course.title}
+                  </h3>
+                  
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-medium text-gray-700">Progreso del curso</span>
+                      <span className="font-bold text-gray-900">{enrollment.progress_percentage}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className="bg-gradient-to-r from-gray-700 to-gray-900 h-3 rounded-full transition-all duration-700 ease-out" 
+                        style={{ width: `${enrollment.progress_percentage}%` }} 
+                      />
+                    </div>
+                  </div>
+
+                  <Link to={`/student/courses/${enrollment.course.id}`}>
+                    <Button className="w-full bg-gray-900 hover:bg-gray-800 text-white rounded-2xl py-3 font-semibold transition-all duration-200 hover:scale-105 group">
+                      <PlayCircle className="h-5 w-5 mr-2 transition-transform duration-200 group-hover:scale-110" />
+                      {enrollment.progress_percentage > 0 ? 'Continuar Aprendiendo' : 'Comenzar Curso'}
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <Card className="border-0 shadow-lg">
+            <CardContent className="text-center py-16 px-6">
+              <div className="w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                <BookOpen className="h-10 w-10 text-gray-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">¡Comienza tu aventura de aprendizaje!</h3>
+              <p className="text-lg text-gray-600 mb-6 max-w-md mx-auto">
+                Aún no te has inscrito a ningún curso. Explora nuestro catálogo y encuentra el curso perfecto para ti.
+              </p>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
     </div>
   );
 };
