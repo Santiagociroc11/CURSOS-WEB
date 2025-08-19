@@ -1,6 +1,18 @@
 export interface User {
   id: string;
   email: string;
+  password: string;
+  full_name: string;
+  role: 'admin' | 'student';
+  avatar_url?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// User without password for frontend use
+export interface PublicUser {
+  id: string;
+  email: string;
   full_name: string;
   role: 'admin' | 'student';
   avatar_url?: string;
@@ -105,4 +117,14 @@ export interface AttemptResult {
   answers: Record<string, string>;
   started_at: string;
   completed_at?: string;
+}
+
+export interface Certificate {
+  id: string;
+  user_id: string;
+  course_id: string;
+  certificate_url?: string;
+  issued_at: string;
+  user?: User;
+  course?: Course;
 }

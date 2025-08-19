@@ -1,105 +1,100 @@
 import { useState, useEffect } from 'react';
-import { User } from '@supabase/supabase-js';
 import supabase from '../lib/supabase';
-import { User as AppUser } from '../types/database';
+import { PublicUser } from '../types/database';
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [userProfile, setUserProfile] = useState<AppUser | null>(null);
+  const [user, setUser] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfile(session.user.id);
-      } else {
-        setLoading(false);
+    // Check if user is stored in localStorage
+    const storedUser = localStorage.getItem('auth_user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('auth_user');
       }
-    });
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-          setLoading(false);
-        }
-      }
-    );
-
-    return () => subscription.unsubscribe();
+    }
+    setLoading(false);
   }, []);
 
-  const fetchUserProfile = async (userId: string) => {
+  const signIn = async (email: string, password: string) => {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('*')
-        .eq('id', userId)
+        .select('id, email, full_name, role, avatar_url, created_at, updated_at')
+        .eq('email', email)
+        .eq('password', password)
         .single();
 
-      if (error) throw error;
-      setUserProfile(data);
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      if (error || !data) {
+        return { 
+          data: null, 
+          error: { message: 'Credenciales inválidas' } 
+        };
+      }
 
-  const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    return { data, error };
+      // Store user in localStorage and state
+      localStorage.setItem('auth_user', JSON.stringify(data));
+      setUser(data);
+
+      return { data, error: null };
+    } catch (error) {
+      return { 
+        data: null, 
+        error: { message: 'Error de conexión' } 
+      };
+    }
   };
 
   const signUp = async (email: string, password: string, fullName: string, role: 'admin' | 'student' = 'student') => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (data.user && !error) {
-      // Create user profile
-      const { error: profileError } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('users')
         .insert([
           {
-            id: data.user.id,
             email,
+            password,
             full_name: fullName,
             role,
           },
-        ]);
+        ])
+        .select('id, email, full_name, role, avatar_url, created_at, updated_at')
+        .single();
 
-      if (profileError) {
-        console.error('Error creating user profile:', profileError);
+      if (error) {
+        return { 
+          data: null, 
+          error: { message: 'Error al crear usuario' } 
+        };
       }
-    }
 
-    return { data, error };
+      return { data, error: null };
+    } catch (error) {
+      return { 
+        data: null, 
+        error: { message: 'Error de conexión' } 
+      };
+    }
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    return { error };
+    localStorage.removeItem('auth_user');
+    setUser(null);
+    return { error: null };
   };
 
   return {
     user,
-    userProfile,
+    userProfile: user, // For compatibility
     loading,
     signIn,
     signUp,
     signOut,
-    isAdmin: userProfile?.role === 'admin',
-    isStudent: userProfile?.role === 'student',
+    isAdmin: user?.role === 'admin',
+    isStudent: user?.role === 'student',
   };
 };

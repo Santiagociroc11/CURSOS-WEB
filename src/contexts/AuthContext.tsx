@@ -1,11 +1,10 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { User } from '@supabase/supabase-js';
-import { User as AppUser } from '../types/database';
+import { PublicUser } from '../types/database';
 
 interface AuthContextType {
-  user: User | null;
-  userProfile: AppUser | null;
+  user: PublicUser | null;
+  userProfile: PublicUser | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<any>;
   signUp: (email: string, password: string, fullName: string, role?: 'admin' | 'student') => Promise<any>;
