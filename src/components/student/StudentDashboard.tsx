@@ -101,7 +101,7 @@ export const StudentDashboard: React.FC = () => {
 
 
       {/* My Courses Section */}
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-gray-900">Mis Cursos</h2>
           {enrollments.length > 0 && (
@@ -112,7 +112,7 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         {enrollments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {enrollments.map((enrollment, index) => (
               <Card 
                 key={enrollment.id} 
@@ -146,7 +146,7 @@ export const StudentDashboard: React.FC = () => {
                   </div>
                 </Link>
 
-                <CardContent className="p-6 sm:p-8">
+                <CardContent className="p-4 sm:p-6">
                   <h3 className="font-bold text-gray-900 text-lg sm:text-xl mb-2 line-clamp-2 leading-tight">
                     {enrollment.course.title}
                   </h3>
