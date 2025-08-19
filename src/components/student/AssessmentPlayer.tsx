@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader } from '../ui/Card';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Clock, CheckCircle, Award, Download } from 'lucide-react';
 import { certificateService } from '../../services/certificateService';
+import { CertificateNameConfirmation } from './CertificateNameConfirmation';
 
 export const AssessmentPlayer: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
@@ -24,6 +25,8 @@ export const AssessmentPlayer: React.FC = () => {
   const [hasPassedAttempt, setHasPassedAttempt] = useState(false);
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
+  const [showNameConfirmation, setShowNameConfirmation] = useState(false);
+  const [pendingCourseInfo, setPendingCourseInfo] = useState<{courseName: string} | null>(null);
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -176,8 +179,7 @@ export const AssessmentPlayer: React.FC = () => {
         console.log('All content completed:', allContentCompleted, 'All assessments passed:', allAssessmentsPassed);
 
         if (allContentCompleted && allAssessmentsPassed) {
-          // Generar certificado usando la API externa
-          setGeneratingCertificate(true);
+          // Preparar para mostrar modal de confirmación de nombre
           try {
             const courseResponse = await supabase
               .from('courses')
@@ -187,45 +189,12 @@ export const AssessmentPlayer: React.FC = () => {
             
             const courseName = courseResponse.data?.title || 'Curso Completado';
             
-            const certificateResult = await certificateService.generateCertificate(
-              userProfile.full_name, 
-              courseName
-            );
-
-            if (certificateResult.success) {
-              // Guardar certificado en la base de datos con la URL
-              await supabase.from('certificates').insert([{
-                user_id: userProfile.id,
-                course_id: assessment.course_id,
-                certificate_url: certificateResult.certificate.download_url,
-                issued_at: new Date().toISOString(),
-              }]);
-              
-              setCertificateGenerated({
-                url: certificateResult.certificate.download_url,
-                courseName: courseName
-              });
-            } else {
-              console.error('Error generating certificate:', certificateResult.message);
-              // Guardar certificado sin URL como fallback
-              await supabase.from('certificates').insert([{
-                user_id: userProfile.id,
-                course_id: assessment.course_id,
-                issued_at: new Date().toISOString(),
-              }]);
-              alert('¡Felicidades! Has completado el curso. El certificado se generará en breve.');
-            }
+            // Mostrar modal de confirmación de nombre
+            setPendingCourseInfo({ courseName });
+            setShowNameConfirmation(true);
           } catch (error) {
-            console.error('Error in certificate generation process:', error);
-            // Guardar certificado sin URL como fallback
-            await supabase.from('certificates').insert([{
-              user_id: userProfile.id,
-              course_id: assessment.course_id,
-              issued_at: new Date().toISOString(),
-            }]);
-            alert('¡Felicidades! Has completado el curso. El certificado se generará en breve.');
-          } finally {
-            setGeneratingCertificate(false);
+            console.error('Error preparing certificate generation:', error);
+            alert('Error al preparar la generación del certificado.');
           }
         }
       }
@@ -247,17 +216,14 @@ export const AssessmentPlayer: React.FC = () => {
   const handleGenerateCertificateForPassed = async () => {
     if (!userProfile || !assessment) return;
     
-    setGeneratingCertificate(true);
     try {
       // Verificar si el curso está completamente terminado
-      // Primero obtener todos los módulos del curso, luego su contenido
       const { data: courseModules } = await supabase
         .from('modules')
         .select('id')
         .eq('course_id', assessment.course_id);
       
       const moduleIds = courseModules?.map(m => m.id) || [];
-      console.log('Course modules found:', courseModules?.length, 'Module IDs:', moduleIds);
       
       const { data: courseContents, error: contentError } = moduleIds.length > 0 
         ? await supabase.from('content').select('id').in('module_id', moduleIds)
@@ -266,17 +232,13 @@ export const AssessmentPlayer: React.FC = () => {
       if (contentError) {
         console.error('Error fetching course content:', contentError);
       }
-      console.log('Course content found:', courseContents?.length);
+      
       const { data: courseAssessments } = await supabase.from('assessments').select('id').eq('course_id', assessment.course_id);
       const { data: userProgress } = await supabase.from('progress').select('content_id').eq('user_id', userProfile.id).eq('completed', true);
       const { data: userAttempts } = await supabase.from('attempt_results').select('assessment_id').eq('user_id', userProfile.id).eq('passed', true);
-
-      console.log('User progress:', userProgress?.length, 'Course assessments:', courseAssessments?.length, 'User attempts:', userAttempts?.length);
       
       const allContentCompleted = courseContents?.every(c => userProgress?.some(p => p.content_id === c.id));
       const allAssessmentsPassed = courseAssessments?.every(a => userAttempts?.some(att => att.assessment_id === a.id));
-
-      console.log('All content completed:', allContentCompleted, 'All assessments passed:', allAssessmentsPassed);
 
       if (!allContentCompleted || !allAssessmentsPassed) {
         alert('Debes completar todo el contenido del curso y aprobar todas las evaluaciones para generar el certificado.');
@@ -291,9 +253,23 @@ export const AssessmentPlayer: React.FC = () => {
       
       const courseName = courseResponse.data?.title || 'Curso Completado';
       
+      // Mostrar modal de confirmación de nombre
+      setPendingCourseInfo({ courseName });
+      setShowNameConfirmation(true);
+    } catch (error) {
+      console.error('Error preparing certificate generation:', error);
+      alert('Error al preparar la generación del certificado.');
+    }
+  };
+
+  const handleConfirmNameAndGenerateCertificate = async (confirmedName: string) => {
+    if (!userProfile || !assessment || !pendingCourseInfo) return;
+    
+    setGeneratingCertificate(true);
+    try {
       const certificateResult = await certificateService.generateCertificate(
-        userProfile.full_name, 
-        courseName
+        confirmedName, 
+        pendingCourseInfo.courseName
       );
 
       if (certificateResult.success) {
@@ -307,6 +283,14 @@ export const AssessmentPlayer: React.FC = () => {
 
         if (error) throw error;
         
+        // Si el nombre fue actualizado, actualizar también el perfil del usuario
+        if (confirmedName !== userProfile.full_name) {
+          await supabase
+            .from('users')
+            .update({ full_name: confirmedName })
+            .eq('id', userProfile.id);
+        }
+        
         setExistingCertificate({
           id: 'new',
           url: certificateResult.certificate.download_url,
@@ -315,8 +299,12 @@ export const AssessmentPlayer: React.FC = () => {
         
         setCertificateGenerated({
           url: certificateResult.certificate.download_url,
-          courseName: courseName
+          courseName: pendingCourseInfo.courseName
         });
+        
+        // Cerrar modal
+        setShowNameConfirmation(false);
+        setPendingCourseInfo(null);
       } else {
         console.error('Error generating certificate:', certificateResult.message);
         alert(`Error al generar el certificado: ${certificateResult.message}`);
@@ -327,6 +315,11 @@ export const AssessmentPlayer: React.FC = () => {
     } finally {
       setGeneratingCertificate(false);
     }
+  };
+
+  const handleCancelCertificateGeneration = () => {
+    setShowNameConfirmation(false);
+    setPendingCourseInfo(null);
   };
 
   if (loading) {
@@ -794,6 +787,18 @@ export const AssessmentPlayer: React.FC = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Modal de confirmación de nombre para certificado */}
+      {pendingCourseInfo && (
+        <CertificateNameConfirmation
+          isOpen={showNameConfirmation}
+          onClose={handleCancelCertificateGeneration}
+          onConfirm={handleConfirmNameAndGenerateCertificate}
+          currentName={userProfile?.full_name || ''}
+          courseName={pendingCourseInfo.courseName}
+          isGenerating={generatingCertificate}
+        />
       )}
     </div>
   );
