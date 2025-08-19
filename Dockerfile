@@ -1,25 +1,30 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Clear npm cache and install all dependencies (including dev dependencies for build)
-RUN npm cache clean --force && npm ci
+# Install dependencies
+RUN npm ci
 
-# Copy source code
+# Copy source files
 COPY . .
 
-# Build the application
+# Build frontend
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+
 RUN npm run build
 
 # Production stage
 FROM nginx:alpine
 
-# Copy built files from builder stage
+# Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
