@@ -16,7 +16,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="lg:ml-72 transition-all duration-300 ease-in-out h-full flex flex-col">
         <Header onMenuClick={() => setSidebarOpen(true)} />
         <main className="flex-1 overflow-y-auto overflow-x-hidden">
-          <div className="animate-in fade-in duration-500 min-h-full p-6 lg:p-8">
+          <div className="animate-in fade-in duration-500 min-h-full">
             {children}
           </div>
         </main>
