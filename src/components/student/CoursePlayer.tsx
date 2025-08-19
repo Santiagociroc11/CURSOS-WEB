@@ -319,7 +319,7 @@ export const CoursePlayer: React.FC = () => {
         className={`
           fixed lg:relative top-0 left-0 z-50 h-screen max-h-screen w-80 lg:w-80 xl:w-96 2xl:w-[400px] 
           bg-gray-900 border-r border-gray-700 shadow-2xl flex-shrink-0 flex flex-col
-          transform transition-transform duration-300 ease-in-out
+          overflow-x-hidden transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
         role="dialog"
@@ -378,10 +378,10 @@ export const CoursePlayer: React.FC = () => {
           </p>
         </div>
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-300px)]">
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-h-[calc(100vh-300px)]">
           {modules.map((module) => (
             <div key={module.id} className="border-b border-gray-700">
-              <h3 className="font-bold px-6 py-4 text-sm uppercase tracking-wider text-gray-400 bg-gray-800/50">
+              <h3 className="font-bold px-6 py-4 text-sm uppercase tracking-wider text-gray-400 bg-gray-800/50 truncate">
                 {module.title}
               </h3>
               <ul className="space-y-1 pb-2">
