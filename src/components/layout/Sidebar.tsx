@@ -13,6 +13,7 @@ import {
   FileCheck
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { translateRole } from '../../utils/translations';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -91,7 +92,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <p className="text-sm font-bold text-gray-900 truncate">{userProfile?.full_name}</p>
                 <div className="flex items-center mt-1">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
-                    {userProfile?.role}
+                    {translateRole(userProfile?.role || '')}
                   </span>
                 </div>
               </div>

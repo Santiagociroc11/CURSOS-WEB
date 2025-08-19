@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, LogOut, User } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
+import { translateRole } from '../../utils/translations';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -44,8 +45,8 @@ export const Header: React.FC<HeaderProps> = ({ onMenuClick }) => {
               <p className="text-sm font-semibold text-gray-900 leading-none">
                 {userProfile?.full_name}
               </p>
-              <p className="text-xs text-gray-500 capitalize mt-0.5">
-                {userProfile?.role}
+              <p className="text-xs text-gray-500 mt-0.5">
+                {translateRole(userProfile?.role || '')}
               </p>
             </div>
           </div>
