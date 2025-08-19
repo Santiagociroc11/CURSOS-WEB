@@ -33,23 +33,38 @@ export const StudentCertificates: React.FC = () => {
     fetchCertificates();
   }, [userProfile]);
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="relative mb-8">
+              <div className="w-16 h-16 border-4 border-gray-200 border-t-yellow-500 rounded-full animate-spin mx-auto"></div>
+              <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-t-orange-500 rounded-full animate-ping mx-auto"></div>
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Cargando certificados</h2>
+            <p className="text-gray-600 font-medium">Revisando tus logros...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Mis Certificados</h1>
+    <div className="space-y-6 p-4 md:p-6 lg:p-8">
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mis Certificados</h1>
       {certificates.length > 0 ? (
         <div className="grid grid-cols-1 gap-6">
           {certificates.map(cert => (
             <Card key={cert.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center space-x-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-4 sm:space-y-0">
+                  <div className="flex items-center space-x-3 sm:space-x-4 flex-1">
                     <div className="flex-shrink-0">
-                      <Award className="h-12 w-12 text-yellow-500" />
+                      <Award className="h-10 w-10 sm:h-12 sm:w-12 text-yellow-500" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-xl font-semibold text-gray-900 truncate">
+                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900 truncate">
                         {cert.course.title}
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
@@ -74,17 +89,17 @@ export const StudentCertificates: React.FC = () => {
                   </div>
                   
                   {/* Botones de acción */}
-                  <div className="flex flex-col sm:flex-row gap-2 ml-4">
+                  <div className="flex flex-row sm:flex-col gap-2 sm:ml-4 justify-end">
                     {cert.certificate_url ? (
                       <>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => window.open(cert.certificate_url, '_blank')}
-                          className="flex items-center space-x-1"
+                          className="flex items-center space-x-1 flex-1 sm:flex-none justify-center"
                         >
                           <Eye className="h-4 w-4" />
-                          <span className="hidden sm:inline">Ver</span>
+                          <span>Ver</span>
                         </Button>
                         <Button
                           size="sm"
@@ -99,10 +114,10 @@ export const StudentCertificates: React.FC = () => {
                               alert('Error al descargar el certificado. Intenta nuevamente.');
                             }
                           }}
-                          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-1"
+                          className="bg-blue-600 hover:bg-blue-700 text-white flex items-center space-x-1 flex-1 sm:flex-none justify-center"
                         >
                           <Download className="h-4 w-4" />
-                          <span className="hidden sm:inline">Descargar</span>
+                          <span>Descargar</span>
                         </Button>
                       </>
                     ) : (

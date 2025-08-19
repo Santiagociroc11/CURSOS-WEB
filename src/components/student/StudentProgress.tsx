@@ -73,9 +73,9 @@ export const StudentProgress: React.FC = () => {
     : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Mi Progreso</h1>
+    <div className="space-y-6 p-4 md:p-6 lg:p-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Mi Progreso</h1>
         
         {/* Progreso general */}
         <div className="flex items-center space-x-3">
@@ -99,10 +99,10 @@ export const StudentProgress: React.FC = () => {
         <div className="space-y-6">
           {enrollments.map(enrollment => (
             <Card key={enrollment.id} className="hover:shadow-lg transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0 mb-4">
                   <div className="flex-1">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-1">
+                    <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">
                       {enrollment.course.title}
                     </h2>
                     <p className="text-sm text-gray-600">
@@ -114,8 +114,8 @@ export const StudentProgress: React.FC = () => {
                     </p>
                   </div>
                   
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                  <div className="text-center sm:text-right">
+                    <div className="text-xl sm:text-2xl font-bold text-gray-900">
                       {enrollment.realProgress.overallPercentage}%
                     </div>
                     <div className="text-sm text-gray-600">Completado</div>
@@ -133,7 +133,7 @@ export const StudentProgress: React.FC = () => {
                 </div>
 
                 {/* Detalles del progreso */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Progreso de contenido */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                     <div className="flex items-center space-x-2 mb-2">
@@ -181,7 +181,7 @@ export const StudentProgress: React.FC = () => {
 
                 {/* Estado del curso */}
                 <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
                     <div className="flex items-center space-x-2">
                       {enrollment.realProgress.overallPercentage === 100 ? (
                         <>
@@ -207,7 +207,7 @@ export const StudentProgress: React.FC = () => {
                     </div>
                     
                     {enrollment.last_accessed_at && (
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-500 text-center sm:text-right">
                         Último acceso: {new Date(enrollment.last_accessed_at).toLocaleDateString('es-ES')}
                       </span>
                     )}
