@@ -474,16 +474,16 @@ export const CoursePlayer: React.FC = () => {
               {/* Hero section del curso */}
               <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 md:px-8 py-12">
                 <div className="max-w-7xl mx-auto">
-                  {/* Mobile menu button */}
+                  {/* Mobile back button */}
                   <div className="flex items-center gap-4 lg:hidden mb-6">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={() => setSidebarOpen(true)}
+                      onClick={() => navigate('/student')}
                       className="rounded-lg hover:bg-white/10 text-white border-white/20"
                     >
-                      <Menu className="h-4 w-4 mr-2" />
-                      Contenidos
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Mis Cursos
                     </Button>
                   </div>
                   
