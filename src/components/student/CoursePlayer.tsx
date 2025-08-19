@@ -472,10 +472,10 @@ export const CoursePlayer: React.FC = () => {
             {/* Header estilo Hotmart */}
             <div className="bg-gray-900 text-white">
               {/* Hero section del curso */}
-              <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 md:px-8 py-12">
+              <div className="relative bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 px-4 md:px-8 py-6 sm:py-8 md:py-12">
                 <div className="max-w-7xl mx-auto">
                   {/* Mobile back button */}
-                  <div className="flex items-center gap-4 lg:hidden mb-6">
+                  <div className="flex items-center gap-4 lg:hidden mb-4">
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -521,8 +521,8 @@ export const CoursePlayer: React.FC = () => {
                     {/* Preview del curso */}
                     <div className="lg:col-span-1">
                       <div className="bg-black/30 rounded-lg p-6 backdrop-blur-sm border border-white/10">
-                        <div className="aspect-video bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center mb-4">
-                          <Play className="h-12 w-12 text-white/70" />
+                        <div className="aspect-[3/2] sm:aspect-video bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center mb-4">
+                          <Play className="h-8 w-8 sm:h-12 sm:w-12 text-white/70" />
                         </div>
                         <div className="text-center">
                           <div className="text-green-400 text-sm font-medium mb-1">
@@ -581,7 +581,7 @@ export const CoursePlayer: React.FC = () => {
                           className="group cursor-pointer transform transition-all duration-300 hover:scale-105"
                           onClick={() => setExpandedModule(module.id)}
                         >
-                          <div className="relative overflow-hidden rounded-lg aspect-[4/3] mb-4">
+                          <div className="relative overflow-hidden rounded-lg aspect-[3/2] sm:aspect-[4/3] mb-4">
                             {/* Imagen de fondo con gradiente */}
                             <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90`}>
                               <div className="absolute inset-0 bg-black/20"></div>
@@ -787,7 +787,7 @@ export const CoursePlayer: React.FC = () => {
                           to={`/student/assessments/${assessment.id}`}
                           className="group"
                         >
-                          <div className="relative overflow-hidden rounded-lg aspect-[4/3] mb-4 transform transition-all duration-300 hover:scale-105">
+                          <div className="relative overflow-hidden rounded-lg aspect-[3/2] sm:aspect-[4/3] mb-4 transform transition-all duration-300 hover:scale-105">
                             {/* Fondo de evaluación */}
                             <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-600 opacity-90">
                               <div className="absolute inset-0 bg-black/20"></div>
@@ -846,8 +846,8 @@ export const CoursePlayer: React.FC = () => {
         ) : currentContent ? (
           <div className="flex flex-col min-h-full">
             {/* Header with title and complete button - FIRST */}
-            <div className="p-6 md:p-12 border-b border-gray-700 sticky top-0 z-20 backdrop-blur-sm bg-gray-800/95">
-              <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-start gap-6">
+            <div className="p-4 sm:p-6 md:p-12 border-b border-gray-700 sticky top-0 z-20 backdrop-blur-sm bg-gray-800/95">
+              <div className="max-w-full sm:max-w-4xl lg:max-w-6xl mx-auto flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 sm:gap-6">
                 {/* Mobile menu button */}
                 <div className="flex items-center gap-4 lg:hidden">
                   <Button 
@@ -929,10 +929,10 @@ export const CoursePlayer: React.FC = () => {
             </div>
 
             {/* Content Area - SECOND */}
-            <div className="flex-1 bg-gray-900 p-6 md:p-12 min-h-0">
+            <div className="flex-1 bg-gray-900 p-4 sm:p-6 md:p-12 min-h-0">
               {/* Video Content */}
               {currentContent.type === 'video' && (
-                <div className="relative aspect-video bg-gray-900 overflow-hidden shadow-2xl rounded-xl mb-8 max-w-6xl mx-auto border border-gray-700">
+                <div className="relative aspect-video bg-gray-900 overflow-hidden shadow-2xl rounded-xl mb-8 max-w-full sm:max-w-4xl lg:max-w-6xl mx-auto border border-gray-700">
                   {currentContent.content_url ? (
                     <div className="w-full h-full">
                       {isYouTubeUrl(currentContent.content_url) ? (
