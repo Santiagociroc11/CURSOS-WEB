@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import { useAuthContext } from '../../contexts/AuthContext';
-import supabase from '../../lib/supabase';
-import { Card, CardContent, CardHeader } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { Input } from '../ui/Input';
+import { useAuthContext } from '../contexts/AuthContext';
+import supabase from '../lib/supabase';
+import { Card, CardContent, CardHeader } from '../components/ui/Card';
+import { Button } from '../components/ui/Button';
+import { Input } from '../components/ui/Input';
 
 export const ProfilePage: React.FC = () => {
   const { userProfile, loading: authLoading } = useAuthContext();

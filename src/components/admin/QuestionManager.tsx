@@ -46,16 +46,39 @@ export const QuestionManager: React.FC = () => {
   useEffect(() => { fetchQuestions(); }, [fetchQuestions]);
 
   const handleSaveQuestion = async (formData: Partial<Question>) => {
-    const action = formData.id ? supabase.from('questions').update(formData).eq('id', formData.id) : supabase.from('questions').insert([{ ...formData, assessment_id: assessmentId }]);
-    await action;
-    await fetchQuestions();
-    setIsModalOpen(false);
+    try {
+      if (formData.id) {
+        // Update existing question
+        const { error } = await supabase.from('questions').update(formData).eq('id', formData.id);
+        if (error) throw error;
+      } else {
+        // Insert new question with calculated order_index
+        const nextOrderIndex = questions.length > 0 ? Math.max(...questions.map(q => q.order_index)) + 1 : 1;
+        const { error } = await supabase.from('questions').insert([{ 
+          ...formData, 
+          assessment_id: assessmentId,
+          order_index: nextOrderIndex
+        }]);
+        if (error) throw error;
+      }
+      await fetchQuestions();
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Error saving question:', error);
+      alert('Error saving question. Please try again.');
+    }
   };
 
   const handleDeleteQuestion = async (id: string) => {
     if (!confirm('Are you sure?')) return;
-    await supabase.from('questions').delete().eq('id', id);
-    await fetchQuestions();
+    try {
+      const { error } = await supabase.from('questions').delete().eq('id', id);
+      if (error) throw error;
+      await fetchQuestions();
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      alert('Error deleting question. Please try again.');
+    }
   };
 
   return (
