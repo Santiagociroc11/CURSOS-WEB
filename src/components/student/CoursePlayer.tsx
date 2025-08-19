@@ -297,8 +297,8 @@ export const CoursePlayer: React.FC = () => {
       {/* Sidebar - Solo mostrar cuando no estamos en vista de módulos */}
       {!showModulesOverview && (
       <div className={`
-          fixed lg:relative top-0 left-0 z-30 h-full w-80 lg:w-80 xl:w-96 2xl:w-[400px] 
-          bg-gray-900 border-r border-gray-700 shadow-2xl overflow-y-auto flex-shrink-0
+          fixed lg:relative top-0 left-0 z-30 h-screen max-h-screen w-80 lg:w-80 xl:w-96 2xl:w-[400px] 
+          bg-gray-900 border-r border-gray-700 shadow-2xl flex-shrink-0 flex flex-col
         transform transition-transform duration-300 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
@@ -348,7 +348,7 @@ export const CoursePlayer: React.FC = () => {
           </p>
         </div>
         {/* Navigation */}
-        <nav className="flex-1">
+        <nav className="flex-1 overflow-y-auto min-h-0 max-h-[calc(100vh-300px)]">
           {modules.map((module) => (
             <div key={module.id} className="border-b border-gray-700">
               <h3 className="font-bold px-6 py-4 text-sm uppercase tracking-wider text-gray-400 bg-gray-800/50">
@@ -435,10 +435,10 @@ export const CoursePlayer: React.FC = () => {
         </nav>
       </div>
       )}
-      <main className={`flex-1 overflow-y-auto min-w-0 ${showModulesOverview ? 'w-full bg-gray-900' : 'bg-gray-900'}`}>
+      <main className={`flex-1 min-w-0 overflow-y-auto ${showModulesOverview ? 'w-full bg-gray-900' : 'bg-gray-900'}`}>
         {showModulesOverview ? (
           // Vista de módulos
-          <div className="h-full">
+          <div className="min-h-full">
             {/* Header estilo Hotmart */}
             <div className="bg-gray-900 text-white">
               {/* Hero section del curso */}
