@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { GraduationCap, Eye, EyeOff } from 'lucide-react';
+import supabase from '../../lib/supabase';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,19 +13,54 @@ export const LoginForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const { signIn } = useAuthContext();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error: signInError } = await signIn(email, password);
+    const { data, error: signInError } = await signIn(email, password);
     
     if (signInError) {
-      setError('Credenciales inválidas. Por favor, verifica tu email y contraseña.');
+      setError(signInError.message || 'Error al iniciar sesión');
+    } else {
+      // Navegar según el rol del usuario
+      if (data?.role === 'admin') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/student', { replace: true });
+      }
     }
     
     setLoading(false);
+  };
+
+  const testConnection = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('count')
+        .limit(1);
+      
+      if (error) {
+        setError(`Error de conexión: ${error.message}`);
+      } else {
+        setError('✅ Conexión a base de datos exitosa');
+      }
+    } catch (err) {
+      setError(`Error inesperado: ${err}`);
+    }
+  };
+
+  const fillAdminCredentials = () => {
+    setEmail('admin@eduplatform.com');
+    setPassword('admin123');
+  };
+
+  const fillStudentCredentials = () => {
+    setEmail('estudiante@eduplatform.com');
+    setPassword('student123');
   };
 
   return (
@@ -85,19 +122,50 @@ export const LoginForm: React.FC = () => {
             </Button>
           </form>
 
+          {/* Test Connection Button */}
+          <div className="mt-4">
+            <Button
+              type="button"
+              onClick={testConnection}
+              className="w-full bg-gray-600 hover:bg-gray-700"
+            >
+              🧪 Probar Conexión BD
+            </Button>
+          </div>
+
           {/* Demo accounts */}
           <div className="mt-8 pt-6 border-t border-gray-200">
             <p className="text-sm text-gray-600 text-center mb-4">Cuentas de demostración:</p>
-            <div className="space-y-2 text-xs text-gray-500">
+            <div className="space-y-2">
               <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="font-medium">Administrador:</p>
-                <p>Email: admin@eduplatform.com</p>
-                <p>Contraseña: admin123</p>
+                <div className="flex justify-between items-center">
+                  <div className="text-xs text-gray-500">
+                    <p className="font-medium">Administrador:</p>
+                    <p>admin@eduplatform.com</p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={fillAdminCredentials}
+                    className="text-xs px-2 py-1 h-auto"
+                  >
+                    Usar
+                  </Button>
+                </div>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg">
-                <p className="font-medium">Estudiante:</p>
-                <p>Email: estudiante@eduplatform.com</p>
-                <p>Contraseña: student123</p>
+                <div className="flex justify-between items-center">
+                  <div className="text-xs text-gray-500">
+                    <p className="font-medium">Estudiante:</p>
+                    <p>estudiante@eduplatform.com</p>
+                  </div>
+                  <Button
+                    type="button"
+                    onClick={fillStudentCredentials}
+                    className="text-xs px-2 py-1 h-auto"
+                  >
+                    Usar
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

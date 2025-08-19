@@ -30,7 +30,14 @@ export const useAuth = () => {
         .eq('password', password)
         .single();
 
-      if (error || !data) {
+      if (error) {
+        return { 
+          data: null, 
+          error: { message: `Error de base de datos: ${error.message}` } 
+        };
+      }
+
+      if (!data) {
         return { 
           data: null, 
           error: { message: 'Credenciales inválidas' } 
@@ -40,12 +47,12 @@ export const useAuth = () => {
       // Store user in localStorage and state
       localStorage.setItem('auth_user', JSON.stringify(data));
       setUser(data);
-
       return { data, error: null };
     } catch (error) {
+
       return { 
         data: null, 
-        error: { message: 'Error de conexión' } 
+        error: { message: `Error de conexión: ${error}` } 
       };
     }
   };
