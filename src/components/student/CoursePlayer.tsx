@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ReactPlayer from 'react-player';
-import { ChevronLeft, CheckCircle, ListChecks, FileText, Download, ExternalLink, Menu, X, Play } from 'lucide-react';
+import { ChevronLeft, CheckCircle, ListChecks, FileText, Download, ExternalLink, Menu, X, Play, BookOpen } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Course, Module, Content, Progress, Assessment } from '../../types/database';
 import supabase from '../../lib/supabase';
@@ -232,7 +232,27 @@ export const CoursePlayer: React.FC = () => {
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="relative mb-8">
+            <div className="w-20 h-20 border-4 border-gray-700 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 w-20 h-20 border-4 border-transparent border-t-purple-500 rounded-full animate-ping mx-auto"></div>
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Cargando tu curso</h2>
+          <p className="text-gray-400 font-medium">Preparando el contenido para ti...</p>
+          <div className="flex justify-center mt-6">
+            <div className="flex space-x-1">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (accessError) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -244,7 +264,26 @@ export const CoursePlayer: React.FC = () => {
       </div>
     );
   }
-  if (!course) return <div>Course not found.</div>;
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-20 h-20 bg-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-6">
+            <BookOpen className="h-10 w-10 text-gray-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-white mb-3">Curso no encontrado</h2>
+          <p className="text-gray-400 mb-6">El curso que buscas no existe o no está disponible.</p>
+          <Button 
+            onClick={() => navigate('/student')}
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-xl px-6 py-3"
+          >
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Volver a Mis Cursos
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
