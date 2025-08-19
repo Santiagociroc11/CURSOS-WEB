@@ -112,7 +112,7 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         {enrollments.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {enrollments.map((enrollment, index) => (
               <Card 
                 key={enrollment.id} 
@@ -120,7 +120,7 @@ export const StudentDashboard: React.FC = () => {
                 style={{ animationDelay: `${index * 100}ms` }}
               >
                 <Link to={`/student/courses/${enrollment.course.id}`}>
-                  <div className="relative aspect-square bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
+                  <div className="relative aspect-[4/3] sm:aspect-square bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
                     {enrollment.course.thumbnail_url ? (
                       <img 
                         src={enrollment.course.thumbnail_url} 
@@ -129,13 +129,13 @@ export const StudentDashboard: React.FC = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="h-16 w-16 text-gray-500 transition-transform duration-300 group-hover:scale-110" />
+                        <BookOpen className="h-12 w-12 sm:h-16 sm:w-16 text-gray-500 transition-transform duration-300 group-hover:scale-110" />
                       </div>
                     )}
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300"></div>
                     
                     {/* Progress overlay */}
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-4">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-3 sm:p-4">
                       <div className="w-full bg-white/20 rounded-full h-2 backdrop-blur-sm">
                         <div 
                           className="bg-white h-2 rounded-full transition-all duration-500" 
@@ -146,19 +146,19 @@ export const StudentDashboard: React.FC = () => {
                   </div>
                 </Link>
 
-                <CardContent className="p-6">
-                  <h3 className="font-bold text-gray-900 text-xl mb-2 line-clamp-2 leading-tight">
+                <CardContent className="p-4 sm:p-6">
+                  <h3 className="font-bold text-gray-900 text-lg sm:text-xl mb-2 line-clamp-2 leading-tight">
                     {enrollment.course.title}
                   </h3>
                   
-                  <div className="space-y-3 mb-4">
+                  <div className="space-y-2 sm:space-y-3 mb-3 sm:mb-4">
                     <div className="flex justify-between items-center text-sm">
                       <span className="font-medium text-gray-700">Progreso del curso</span>
                       <span className="font-bold text-gray-900">{enrollment.progress_percentage}%</span>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div className="w-full bg-gray-200 rounded-full h-2 sm:h-3">
                       <div 
-                        className="bg-gradient-to-r from-gray-700 to-gray-900 h-3 rounded-full transition-all duration-700 ease-out" 
+                        className="bg-gradient-to-r from-gray-700 to-gray-900 h-2 sm:h-3 rounded-full transition-all duration-700 ease-out" 
                         style={{ width: `${enrollment.progress_percentage}%` }} 
                       />
                     </div>
