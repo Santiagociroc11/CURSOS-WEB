@@ -8,7 +8,9 @@ import {
   GraduationCap,
   Library,
   Award,
-  User
+  User,
+  UserCheck,
+  FileCheck
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 
@@ -25,6 +27,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: BarChart3, label: 'Dashboard', href: '/admin' },
     { icon: BookOpen, label: 'Cursos', href: '/admin/courses' },
     { icon: Users, label: 'Usuarios', href: '/admin/users' },
+    { icon: UserCheck, label: 'Inscripciones', href: '/admin/enrollments' },
+    { icon: FileCheck, label: 'Evaluaciones', href: '/admin/assessments' },
     { icon: Award, label: 'Certificados', href: '/admin/certificates' },
     { icon: User, label: 'Perfil', href: '/admin/profile' },
   ];
@@ -50,35 +54,53 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300
+        fixed top-0 left-0 z-50 h-full w-72 bg-white/95 backdrop-blur-xl border-r border-gray-200/50 
+        shadow-2xl shadow-gray-900/10 transform transition-all duration-500 ease-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:h-screen
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center">
-              <GraduationCap className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">EduPlatform</span>
+          <div className="p-8 border-b border-gray-100/50">
+            <div className="flex items-center group">
+              <div className="relative">
+                <GraduationCap className="h-10 w-10 text-gray-800 transition-transform duration-300 group-hover:scale-110" />
+                <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-400 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-300 blur"></div>
+              </div>
+              <div className="ml-4">
+                <span className="text-2xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  EduPlatform
+                </span>
+                <div className="text-xs font-medium text-gray-500 mt-0.5 tracking-wider uppercase">
+                  Campus Virtual
+                </div>
+              </div>
             </div>
           </div>
 
           {/* User info */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <User className="h-5 w-5 text-blue-600" />
+          <div className="p-6 border-b border-gray-100/50">
+            <div className="flex items-center group cursor-pointer">
+              <div className="relative">
+                <div className="w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300 group-hover:shadow-xl group-hover:scale-105">
+                  <User className="h-6 w-6 text-gray-700" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gray-800 rounded-full border-2 border-white"></div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-900">{userProfile?.full_name}</p>
-                <p className="text-xs text-gray-500 capitalize">{userProfile?.role}</p>
+              <div className="ml-4 flex-1 min-w-0">
+                <p className="text-sm font-bold text-gray-900 truncate">{userProfile?.full_name}</p>
+                <div className="flex items-center mt-1">
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                    {userProfile?.role}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-2">
-            {navItems.map((item) => {
+          <nav className="flex-1 p-6 space-y-3 overflow-y-auto">
+            {navItems.map((item, index) => {
               const isActive = location.pathname === item.href || 
                 (item.href !== '/admin' && item.href !== '/student' && location.pathname.startsWith(item.href));
               
@@ -87,16 +109,33 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                   key={item.href}
                   to={item.href}
                   className={`
-                    flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                    group flex items-center px-4 py-3.5 rounded-2xl text-sm font-semibold 
+                    transition-all duration-300 ease-out transform hover:scale-[1.02]
                     ${isActive 
-                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      ? 'bg-gray-900 text-white shadow-lg shadow-gray-900/25' 
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50/80 hover:shadow-md'
                     }
                   `}
                   onClick={onClose}
+                  style={{
+                    animationDelay: `${index * 100}ms`
+                  }}
                 >
-                  <item.icon className="h-5 w-5 mr-3" />
-                  {item.label}
+                  <div className={`
+                    flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300
+                    ${isActive 
+                      ? 'bg-white/20 text-white' 
+                      : 'bg-gray-100 text-gray-600 group-hover:bg-gray-200 group-hover:scale-110'
+                    }
+                  `}>
+                    <item.icon className="h-5 w-5" />
+                  </div>
+                  <span className="ml-4 tracking-wide">{item.label}</span>
+                  
+                  {/* Active indicator */}
+                  {isActive && (
+                    <div className="ml-auto w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  )}
                 </Link>
               );
             })}
