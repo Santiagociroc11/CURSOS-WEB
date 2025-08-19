@@ -26,7 +26,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: BookOpen, label: 'Cursos', href: '/admin/courses' },
     { icon: Users, label: 'Usuarios', href: '/admin/users' },
     { icon: Award, label: 'Certificados', href: '/admin/certificates' },
-    { icon: Settings, label: 'Configuración', href: '/admin/settings' },
+    { icon: User, label: 'Perfil', href: '/admin/profile' },
   ];
 
   const studentNavItems = [
@@ -52,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       <div className={`
         fixed top-0 left-0 z-50 h-full w-64 bg-white border-r border-gray-200 transform transition-transform duration-300
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
-        lg:translate-x-0 lg:static lg:h-screen
+        lg:translate-x-0 lg:h-screen
       `}>
         <div className="flex flex-col h-full">
           {/* Header */}

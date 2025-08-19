@@ -1,266 +1,114 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import ReactPlayer from 'react-player';
-import { 
-  ChevronLeft, 
-  ChevronRight, 
-  PlayCircle, 
-  CheckCircle, 
-  FileText, 
-  ExternalLink,
-  Clock,
-  Users
-} from 'lucide-react';
+
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
+import ReactPlayer from 'react-player/youtube';
+import { ChevronLeft, PlayCircle, CheckCircle, FileText, ExternalLink, ListChecks } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Course, Module, Content } from '../../types/database';
+import { Course, Module, Content, Progress, Assessment } from '../../types/database';
+import supabase from '../../lib/supabase';
+import { useAuthContext } from '../../contexts/AuthContext';
+
+// Type definition for a module with its content
+interface ModuleWithContent extends Module {
+  contents: Content[];
+}
 
 export const CoursePlayer: React.FC = () => {
-  const { courseId } = useParams();
+  const { courseId } = useParams<{ courseId: string }>();
   const navigate = useNavigate();
+  const { userProfile } = useAuthContext();
+
   const [course, setCourse] = useState<Course | null>(null);
-  const [modules, setModules] = useState<Module[]>([]);
+  const [modules, setModules] = useState<ModuleWithContent[]>([]);
+  const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [progress, setProgress] = useState<Progress[]>([]);
   const [currentContent, setCurrentContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (courseId) {
-      fetchCourseData();
-    }
-  }, [courseId]);
-
-  const fetchCourseData = async () => {
+  const fetchCourseData = useCallback(async () => {
+    if (!courseId || !userProfile) return;
+    setLoading(true);
     try {
-      // Mock data for demonstration
-      const mockCourse: Course = {
-        id: courseId!,
-        title: 'React Fundamentals',
-        description: 'Aprende los conceptos básicos de React desde cero con ejemplos prácticos y proyectos reales.',
-        thumbnail_url: 'https://images.pexels.com/photos/4050287/pexels-photo-4050287.jpeg?auto=compress&cs=tinysrgb&w=800',
-        instructor_id: '1',
-        duration_hours: 20,
-        difficulty_level: 'beginner',
-        category: 'Programación',
-        is_published: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const courseRes = await supabase.from('courses').select('*').eq('id', courseId).single();
+      if (courseRes.error) throw courseRes.error;
+      setCourse(courseRes.data);
 
-      const mockModules: Module[] = [
-        {
-          id: '1',
-          course_id: courseId!,
-          title: 'Introducción a React',
-          description: 'Conceptos básicos y configuración del entorno',
-          order_index: 1,
-          duration_minutes: 120,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          course_id: courseId!,
-          title: 'Componentes y JSX',
-          description: 'Creación de componentes y sintaxis JSX',
-          order_index: 2,
-          duration_minutes: 180,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          course_id: courseId!,
-          title: 'Estado y Props',
-          description: 'Manejo del estado y comunicación entre componentes',
-          order_index: 3,
-          duration_minutes: 150,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ];
+      const modulesRes = await supabase.from('modules').select('*, contents(*)').eq('course_id', courseId).order('order_index').order('order_index', { foreignTable: 'contents' });
+      if (modulesRes.error) throw modulesRes.error;
+      setModules(modulesRes.data as ModuleWithContent[]);
 
-      const mockContent: Content = {
-        id: '1',
-        module_id: '1',
-        title: '¿Qué es React?',
-        type: 'video',
-        content_url: 'https://www.youtube.com/watch?v=Tn6-PIqc4UM',
-        order_index: 1,
-        duration_minutes: 15,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
+      const assessmentsRes = await supabase.from('assessments').select('*').eq('course_id', courseId);
+      if (assessmentsRes.error) throw assessmentsRes.error;
+      setAssessments(assessmentsRes.data);
 
-      setCourse(mockCourse);
-      setModules(mockModules);
-      setCurrentContent(mockContent);
+      const progressRes = await supabase.from('progress').select('*').eq('user_id', userProfile.id).in('content_id', modulesRes.data.flatMap(m => m.contents.map(c => c.id)));
+      if (progressRes.error) throw progressRes.error;
+      setProgress(progressRes.data);
+
+      const firstUncompleted = modulesRes.data.flatMap(m => m.contents).find(c => !progressRes.data.some(p => p.content_id === c.id && p.completed));
+      setCurrentContent(firstUncompleted || modulesRes.data?.[0]?.contents?.[0] || null);
+
     } catch (error) {
       console.error('Error fetching course data:', error);
     } finally {
       setLoading(false);
     }
+  }, [courseId, userProfile]);
+
+  useEffect(() => { fetchCourseData(); }, [fetchCourseData]);
+
+  const completedContentIds = useMemo(() => new Set(progress.filter(p => p.completed).map(p => p.content_id)), [progress]);
+
+  const courseProgressPercentage = useMemo(() => {
+    const totalContents = modules.reduce((acc, m) => acc + m.contents.length, 0);
+    if (totalContents === 0) return 0;
+    return Math.round((completedContentIds.size / totalContents) * 100);
+  }, [completedContentIds, modules]);
+
+  const handleMarkComplete = async () => {
+    if (!currentContent || !userProfile) return;
+    try {
+      await supabase.from('progress').upsert({ user_id: userProfile.id, content_id: currentContent.id, completed: true, completed_at: new Date().toISOString() }, { onConflict: 'user_id,content_id' });
+      await supabase.from('enrollments').update({ progress_percentage: courseProgressPercentage, last_accessed_at: new Date().toISOString() }).match({ user_id: userProfile.id, course_id: courseId });
+      fetchCourseData(); // Refetch to get next uncompleted
+    } catch (error) {
+      console.error('Error marking as complete:', error);
+    }
   };
 
-  const handleModuleClick = (moduleId: string) => {
-    // In a real implementation, fetch content for this module
-    console.log('Loading module:', moduleId);
-  };
-
-  const handleMarkComplete = () => {
-    // Mark current content as completed
-    console.log('Marking content as completed');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!course) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-gray-600">Curso no encontrado</p>
-        <Button onClick={() => navigate('/student')} className="mt-4">
-          Volver a Mis Cursos
-        </Button>
-      </div>
-    );
-  }
+  if (loading) return <div>Loading...</div>;
+  if (!course) return <div>Course not found.</div>;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 h-[calc(100vh-120px)]">
-      {/* Main Content Area */}
-      <div className="lg:col-span-3 space-y-6">
-        {/* Course Header */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" onClick={() => navigate('/student')}>
-                <ChevronLeft className="h-4 w-4 mr-2" />
-                Volver a Mis Cursos
-              </Button>
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                <span className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {course.duration_hours}h
-                </span>
-                <span className="flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  156 estudiantes
-                </span>
-              </div>
+    <div className="flex h-screen">
+      <div className="w-80 bg-white border-r overflow-y-auto">
+        <div className="p-4 border-b"><Button variant="ghost" size="sm" onClick={() => navigate('/student')}><ChevronLeft className="h-4 w-4 mr-2" />Mis Cursos</Button><h2 className="font-bold text-lg">{course.title}</h2></div>
+        <div className="p-4"><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full" style={{ width: `${courseProgressPercentage}%` }}></div></div><p className="text-xs text-gray-600">{courseProgressPercentage}% completado</p></div>
+        <nav>
+          {modules.map(module => (
+            <div key={module.id} className="border-t">
+              <h3 className="font-semibold p-4 text-sm uppercase text-gray-500">{module.title}</h3>
+              <ul>{module.contents.map(content => <li key={content.id}><button onClick={() => setCurrentContent(content)} className={`w-full text-left px-4 py-2 text-sm flex items-center space-x-3 ${currentContent?.id === content.id ? 'bg-blue-50' : ''}`}><CheckCircle className={`h-4 w-4 ${completedContentIds.has(content.id) ? 'text-green-500' : 'text-gray-300'}`} /><span>{content.title}</span></button></li>)}</ul>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{course.title}</h1>
-            <p className="text-gray-600">{course.description}</p>
-          </CardContent>
-        </Card>
-
-        {/* Video Player */}
-        <Card>
-          <CardContent className="p-0">
-            <div className="aspect-video bg-black rounded-lg overflow-hidden">
-              {currentContent?.type === 'video' && currentContent.content_url ? (
-                <ReactPlayer
-                  url={currentContent.content_url}
-                  width="100%"
-                  height="100%"
-                  controls
-                  playing={false}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-white">
-                  <div className="text-center">
-                    <PlayCircle className="h-16 w-16 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg">Selecciona un módulo para comenzar</p>
-                  </div>
-                </div>
-              )}
+          ))}
+          {assessments.length > 0 && (
+            <div className="border-t">
+              <h3 className="font-semibold p-4 text-sm uppercase text-gray-500">Evaluaciones</h3>
+              <ul>{assessments.map(assessment => <li key={assessment.id}><Link to={`/student/assessments/${assessment.id}`} className="w-full text-left px-4 py-2 text-sm flex items-center space-x-3"><ListChecks className="h-4 w-4" /><span>{assessment.title}</span></Link></li>)}</ul>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Content Info */}
-        {currentContent && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900 mb-2">{currentContent.title}</h2>
-                  <div className="flex items-center text-sm text-gray-600 space-x-4">
-                    <span className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {currentContent.duration_minutes} min
-                    </span>
-                    <span className="capitalize flex items-center">
-                      {currentContent.type === 'video' && <PlayCircle className="h-4 w-4 mr-1" />}
-                      {currentContent.type === 'document' && <FileText className="h-4 w-4 mr-1" />}
-                      {currentContent.type === 'link' && <ExternalLink className="h-4 w-4 mr-1" />}
-                      {currentContent.type}
-                    </span>
-                  </div>
-                </div>
-                <Button onClick={handleMarkComplete} variant="secondary">
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Marcar como Completado
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+          )}
+        </nav>
       </div>
-
-      {/* Sidebar - Course Modules */}
-      <div className="lg:col-span-1">
-        <Card className="sticky top-6">
-          <CardHeader>
-            <h3 className="font-semibold text-gray-900">Contenido del Curso</h3>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full" style={{ width: '35%' }}></div>
-            </div>
-            <p className="text-sm text-gray-600">35% completado</p>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-y-auto">
-              {modules.map((module, index) => (
-                <div key={module.id} className="border-b border-gray-100 last:border-b-0">
-                  <button
-                    onClick={() => handleModuleClick(module.id)}
-                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-1">
-                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full mr-2">
-                            {index + 1}
-                          </span>
-                          <h4 className="text-sm font-medium text-gray-900">{module.title}</h4>
-                        </div>
-                        <p className="text-xs text-gray-600 mb-2">{module.description}</p>
-                        <div className="flex items-center text-xs text-gray-500">
-                          <Clock className="h-3 w-3 mr-1" />
-                          {module.duration_minutes} min
-                        </div>
-                      </div>
-                      <div className="ml-2">
-                        {index === 0 ? (
-                          <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                            <PlayCircle className="h-3 w-3 text-white" />
-                          </div>
-                        ) : (
-                          <div className="w-5 h-5 border-2 border-gray-300 rounded-full"></div>
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <main className="flex-1 overflow-y-auto">
+        {currentContent ? (
+          <div>
+            <div className="aspect-video bg-black"><ReactPlayer url={currentContent.content_url || ''} width="100%" height="100%" controls playing /></div>
+            <div className="p-6"><h1 className="text-2xl font-bold">{currentContent.title}</h1><Button onClick={handleMarkComplete} disabled={completedContentIds.has(currentContent.id)}>Marcar como Completado</Button></div>
+            {currentContent.content_text && <div className="p-6 prose">{currentContent.content_text}</div>}
+          </div>
+        ) : <div>Selecciona un contenido</div>}
+      </main>
     </div>
   );
 };

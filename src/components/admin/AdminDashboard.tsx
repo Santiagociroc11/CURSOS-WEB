@@ -8,6 +8,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
+import { Button } from '../ui/Button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 import supabase from '../../lib/supabase';
 

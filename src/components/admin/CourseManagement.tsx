@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Eye, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
@@ -218,10 +219,13 @@ export const CourseManagement: React.FC = () => {
               </div>
 
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm" className="flex-1">
+                <Link 
+                  to={`/admin/courses/${course.id}`}
+                  className="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 border-2 border-gray-300 hover:border-gray-400 text-gray-700 hover:bg-gray-50 focus:ring-gray-500 px-3 py-1.5 text-sm flex-1"
+                >
                   <Eye className="h-3 w-3 mr-1" />
                   Ver
-                </Button>
+                </Link>
                 <Button variant="outline" size="sm" onClick={() => openEditModal(course)}>
                   <Edit className="h-3 w-3" />
                 </Button>
