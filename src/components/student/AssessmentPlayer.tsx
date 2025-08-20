@@ -26,8 +26,6 @@ export const AssessmentPlayer: React.FC = () => {
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
   const [certificateModalData, setCertificateModalData] = useState<{courseName: string, isOpen: boolean} | null>(null);
-  const [showCertModal, setShowCertModal] = useState(false);
-  const [certCourseName, setCertCourseName] = useState('');
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -129,10 +127,6 @@ export const AssessmentPlayer: React.FC = () => {
     console.log('🔄 certificateModalData cambió:', certificateModalData);
   }, [certificateModalData]);
 
-  // Debug: monitorear cambios en estados de respaldo
-  useEffect(() => {
-    console.log('🔄 Estados de respaldo:', { showCertModal, certCourseName });
-  }, [showCertModal, certCourseName]);
 
   const handleSubmit = async () => {
     if (!userProfile || !assessment || submitting) return;
@@ -240,8 +234,6 @@ export const AssessmentPlayer: React.FC = () => {
             
             // Mostrar modal de confirmación de nombre
             setCertificateModalData({ courseName, isOpen: true });
-            setCertCourseName(courseName);
-            setShowCertModal(true);
           } catch (error) {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
@@ -505,11 +497,7 @@ export const AssessmentPlayer: React.FC = () => {
       
       setCertificateModalData(modalData);
       
-      // Método de respaldo usando estados separados
-      setCertCourseName(courseName);
-      setShowCertModal(true);
-      
-      console.log('🎯 Modal de confirmación de nombre activado (ambos métodos)');
+      console.log('🎯 Modal de confirmación de nombre activado');
     } catch (error) {
       console.error('💥 Error en handleGenerateCertificateForPassed:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -520,7 +508,7 @@ export const AssessmentPlayer: React.FC = () => {
   const handleConfirmNameAndGenerateCertificate = async (confirmedName: string) => {
     if (!userProfile || !assessment) return;
     
-    const courseName = certificateModalData?.courseName || certCourseName;
+    const courseName = certificateModalData?.courseName;
     if (!courseName) return;
     
     setGeneratingCertificate(true);
@@ -562,8 +550,6 @@ export const AssessmentPlayer: React.FC = () => {
         
         // Cerrar modal
         setCertificateModalData(null);
-        setShowCertModal(false);
-        setCertCourseName('');
       } else {
         console.error('Error generating certificate:', certificateResult.message);
         alert(`Error al generar el certificado: ${certificateResult.message}`);
@@ -578,13 +564,11 @@ export const AssessmentPlayer: React.FC = () => {
 
   const handleCancelCertificateGeneration = () => {
     setCertificateModalData(null);
-    setShowCertModal(false);
-    setCertCourseName('');
   };
 
   // Debug render states
-  console.log('🖼️ Render modal - certificateModalData:', certificateModalData, 'showCertModal:', showCertModal, 'certCourseName:', certCourseName);
-  console.log('🖼️ Modal conditions - Primary modal:', !!(certificateModalData), 'Secondary modal:', !!(!certificateModalData && showCertModal && certCourseName));
+  console.log('🖼️ Render modal - certificateModalData:', certificateModalData);
+  console.log('🖼️ Modal condition - Should show modal:', !!(certificateModalData?.isOpen));
 
   if (loading) {
     return (
@@ -1054,20 +1038,20 @@ export const AssessmentPlayer: React.FC = () => {
       )}
 
       {/* Modal de confirmación de nombre para certificado */}
-      {(certificateModalData?.isOpen || showCertModal) && (
+      {certificateModalData?.isOpen && (
         <>
           {console.log('🚀 Intentando renderizar CertificateNameConfirmation con props:', {
-            isOpen: certificateModalData?.isOpen || showCertModal,
+            isOpen: certificateModalData.isOpen,
             currentName: userProfile?.full_name || '',
-            courseName: certificateModalData?.courseName || certCourseName,
+            courseName: certificateModalData.courseName,
             isGenerating: generatingCertificate
           })}
           <CertificateNameConfirmation
-            isOpen={certificateModalData?.isOpen || showCertModal}
+            isOpen={certificateModalData.isOpen}
             onClose={handleCancelCertificateGeneration}
             onConfirm={handleConfirmNameAndGenerateCertificate}
             currentName={userProfile?.full_name || ''}
-            courseName={certificateModalData?.courseName || certCourseName}
+            courseName={certificateModalData.courseName}
             isGenerating={generatingCertificate}
           />
         </>
