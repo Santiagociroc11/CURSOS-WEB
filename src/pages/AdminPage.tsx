@@ -10,6 +10,7 @@ import { AssessmentManagement } from '../components/admin/AssessmentManagement';
 import { ProfilePage } from './ProfilePage';
 import { QuestionManager } from '../components/admin/QuestionManager';
 import { CertificateManagement } from '../components/admin/CertificateManagement';
+import { HotmartIntegration } from '../components/admin/HotmartIntegration';
 
 // Updated to use enhanced components
 export const AdminPage: React.FC = () => {
@@ -24,6 +25,7 @@ export const AdminPage: React.FC = () => {
         <Route path="users" element={<UserManagement />} />
         <Route path="enrollments" element={<EnrollmentManagement />} />
         <Route path="certificates" element={<CertificateManagement />} />
+        <Route path="hotmart" element={<HotmartIntegration />} />
         <Route path="profile" element={<ProfilePage />} />
       </Routes>
     </Layout>

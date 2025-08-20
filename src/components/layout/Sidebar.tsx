@@ -10,7 +10,8 @@ import {
   Award,
   User,
   UserCheck,
-  FileCheck
+  FileCheck,
+  Zap
 } from 'lucide-react';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { translateRole } from '../../utils/translations';
@@ -31,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     { icon: UserCheck, label: 'Inscripciones', href: '/admin/enrollments' },
     { icon: FileCheck, label: 'Evaluaciones', href: '/admin/assessments' },
     { icon: Award, label: 'Certificados', href: '/admin/certificates' },
+    { icon: Zap, label: 'Hotmart API', href: '/admin/hotmart' },
     { icon: User, label: 'Perfil', href: '/admin/profile' },
   ];
 
