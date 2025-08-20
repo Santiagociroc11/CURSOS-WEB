@@ -569,6 +569,16 @@ export const AssessmentPlayer: React.FC = () => {
   // Debug render states
   console.log('🖼️ Render modal - certificateModalData:', certificateModalData);
   console.log('🖼️ Modal condition - Should show modal:', !!(certificateModalData?.isOpen));
+  
+  // Log cuando vamos a renderizar el modal
+  if (certificateModalData?.isOpen) {
+    console.log('🚀 VA A RENDERIZAR CertificateNameConfirmation con props:', {
+      isOpen: certificateModalData.isOpen,
+      currentName: userProfile?.full_name || '',
+      courseName: certificateModalData.courseName,
+      isGenerating: generatingCertificate
+    });
+  }
 
   if (loading) {
     return (
@@ -1039,22 +1049,28 @@ export const AssessmentPlayer: React.FC = () => {
 
       {/* Modal de confirmación de nombre para certificado */}
       {certificateModalData?.isOpen && (
-        <>
-          {console.log('🚀 Intentando renderizar CertificateNameConfirmation con props:', {
-            isOpen: certificateModalData.isOpen,
-            currentName: userProfile?.full_name || '',
-            courseName: certificateModalData.courseName,
-            isGenerating: generatingCertificate
-          })}
-          <CertificateNameConfirmation
-            isOpen={certificateModalData.isOpen}
-            onClose={handleCancelCertificateGeneration}
-            onConfirm={handleConfirmNameAndGenerateCertificate}
-            currentName={userProfile?.full_name || ''}
-            courseName={certificateModalData.courseName}
-            isGenerating={generatingCertificate}
-          />
-        </>
+        <div className="fixed inset-0 z-[70] bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold mb-4">🚀 MODAL DE PRUEBA FUNCIONANDO!</h2>
+            <p className="mb-4">Curso: {certificateModalData.courseName}</p>
+            <p className="mb-4">Usuario: {userProfile?.full_name || 'Sin nombre'}</p>
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancelCertificateGeneration}
+                className="px-4 py-2 bg-gray-500 text-white rounded"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleConfirmNameAndGenerateCertificate(userProfile?.full_name || 'Usuario')}
+                className="px-4 py-2 bg-blue-500 text-white rounded"
+                disabled={generatingCertificate}
+              >
+                {generatingCertificate ? 'Generando...' : 'Generar Certificado'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
