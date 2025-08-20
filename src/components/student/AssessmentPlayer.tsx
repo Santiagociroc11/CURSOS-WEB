@@ -129,6 +129,11 @@ export const AssessmentPlayer: React.FC = () => {
     console.log('🔄 certificateModalData cambió:', certificateModalData);
   }, [certificateModalData]);
 
+  // Debug: monitorear cambios en estados de respaldo
+  useEffect(() => {
+    console.log('🔄 Estados de respaldo:', { showCertModal, certCourseName });
+  }, [showCertModal, certCourseName]);
+
   const handleSubmit = async () => {
     if (!userProfile || !assessment || submitting) return;
     
@@ -576,6 +581,9 @@ export const AssessmentPlayer: React.FC = () => {
     setShowCertModal(false);
     setCertCourseName('');
   };
+
+  // Debug render states
+  console.log('🖼️ Render modal - certificateModalData:', certificateModalData, 'showCertModal:', showCertModal, 'certCourseName:', certCourseName);
 
   if (loading) {
     return (
