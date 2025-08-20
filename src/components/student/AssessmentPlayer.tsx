@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate } from 'react-router-dom';
 import supabase from '../../lib/supabase';
 import { Assessment, Question } from '../../types/database';
@@ -125,6 +126,13 @@ export const AssessmentPlayer: React.FC = () => {
   // Debug: monitorear cambios en certificateModalData
   useEffect(() => {
     console.log('🔄 certificateModalData cambió:', certificateModalData);
+    if (certificateModalData?.isOpen) {
+      console.log('🔄 useEffect detectó modal abierto - debería ser visible');
+      // Forzar un pequeño delay para ver si es un problema de timing
+      setTimeout(() => {
+        console.log('🔄 Timeout ejecutado - modal aún debería estar visible');
+      }, 100);
+    }
   }, [certificateModalData]);
 
 
@@ -1047,14 +1055,21 @@ export const AssessmentPlayer: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de confirmación de nombre para certificado */}
-      {certificateModalData?.isOpen && (
+      {/* Modal de confirmación de nombre para certificado usando Portal */}
+      {certificateModalData?.isOpen && createPortal(
         <div 
           className="fixed inset-0 bg-red-500 bg-opacity-75 flex items-center justify-center"
           style={{ zIndex: 9999 }}
           onClick={(e) => {
             console.log('🔴 Click en backdrop del modal');
             e.stopPropagation();
+          }}
+          ref={(el) => {
+            if (el) {
+              console.log('🔴 Modal DIV montado en DOM via Portal:', el);
+            } else {
+              console.log('🔴 Modal DIV desmontado del DOM via Portal');
+            }
           }}
         >
           <div 
@@ -1064,7 +1079,7 @@ export const AssessmentPlayer: React.FC = () => {
               e.stopPropagation();
             }}
           >
-            <h2 className="text-2xl font-bold mb-4 text-red-600">🚀 MODAL DE PRUEBA FUNCIONANDO!</h2>
+            <h2 className="text-2xl font-bold mb-4 text-red-600">🚀 MODAL DE PRUEBA FUNCIONANDO VIA PORTAL!</h2>
             <p className="mb-4 text-lg">Curso: {certificateModalData.courseName}</p>
             <p className="mb-4 text-lg">Usuario: {userProfile?.full_name || 'Sin nombre'}</p>
             <div className="flex gap-2">
@@ -1089,7 +1104,8 @@ export const AssessmentPlayer: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
