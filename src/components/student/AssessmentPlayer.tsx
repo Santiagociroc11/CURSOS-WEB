@@ -320,7 +320,12 @@ export const AssessmentPlayer: React.FC = () => {
   };
 
   const handleGenerateCertificateForPassed = async () => {
-    if (!userProfile || !assessment) return;
+    if (!userProfile || !assessment) {
+      console.log('Missing userProfile or assessment:', { userProfile: !!userProfile, assessment: !!assessment });
+      return;
+    }
+    
+    console.log('🎓 Iniciando proceso de generación de certificado...');
     
     try {
       // Obtener información detallada del curso para verificar completitud
@@ -383,8 +388,25 @@ export const AssessmentPlayer: React.FC = () => {
       // Verificar si todas las evaluaciones están aprobadas (obligatorio 100%)
       const allAssessmentsPassed = incompleteAssessments.length === 0;
 
+      // Debug logs
+      console.log('📊 Datos de progreso:', {
+        totalContents,
+        completedContentsCount,
+        contentCompletionPercentage,
+        totalAssessments: courseAssessments?.length || 0,
+        incompleteAssessments: incompleteAssessments.length,
+        allAssessmentsPassed
+      });
+
       // Verificar si cumple los requisitos: 80% contenido + todas las evaluaciones
       if (contentCompletionPercentage < 80 || !allAssessmentsPassed) {
+        console.log('❌ No cumple requisitos para certificado:', {
+          contentCompletionPercentage,
+          requiredPercentage: 80,
+          allAssessmentsPassed,
+          reason: contentCompletionPercentage < 80 ? 'Falta contenido' : 'Faltan evaluaciones'
+        });
+        
         // Crear mensaje detallado con instrucciones específicas
         let detailedMessage = "🎓 Para obtener tu certificado necesitas cumplir:\n\n";
         detailedMessage += `📊 Progreso actual: ${contentCompletionPercentage}% del contenido completado\n\n`;
@@ -453,6 +475,8 @@ export const AssessmentPlayer: React.FC = () => {
         return;
       }
 
+      console.log('✅ Cumple todos los requisitos, procediendo a generar certificado...');
+
       const courseResponse = await supabase
         .from('courses')
         .select('title')
@@ -461,12 +485,17 @@ export const AssessmentPlayer: React.FC = () => {
       
       const courseName = courseResponse.data?.title || 'Curso Completado';
       
+      console.log('📋 Información del curso obtenida:', { courseName });
+      
       // Mostrar modal de confirmación de nombre
       setPendingCourseInfo({ courseName });
       setShowNameConfirmation(true);
+      
+      console.log('🎯 Modal de confirmación de nombre activado');
     } catch (error) {
-      console.error('Error preparing certificate generation:', error);
-      alert('Error al preparar la generación del certificado.');
+      console.error('💥 Error en handleGenerateCertificateForPassed:', error);
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
+      alert('Error al preparar la generación del certificado: ' + (error instanceof Error ? error.message : 'Error desconocido'));
     }
   };
 
