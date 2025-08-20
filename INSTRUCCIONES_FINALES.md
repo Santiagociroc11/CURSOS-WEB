@@ -3,8 +3,9 @@
 ## ✅ **¿Qué hemos hecho?**
 
 1. ✅ **Código modificado**: `src/hooks/useAuth.ts` ahora registra logins en BD
-2. ✅ **Sin errores**: El código compila correctamente
-3. ⏳ **Falta**: Ejecutar migración SQL en la base de datos
+2. ✅ **Error corregido**: Solucionado problema con `supabase.raw()` 
+3. ✅ **Sin errores**: El código compila correctamente
+4. ⏳ **Falta**: Ejecutar migración SQL en la base de datos
 
 ---
 
