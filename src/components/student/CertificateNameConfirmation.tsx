@@ -153,9 +153,5 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
         </p>
       </div>
     </Modal>
-    );
-  } catch (error) {
-    console.error('💥 Error rendering CertificateNameConfirmation:', error);
-    return <div>Error rendering modal: {error instanceof Error ? error.message : 'Unknown error'}</div>;
-  }
+  );
 };
