@@ -46,11 +46,21 @@ export const useAuth = () => {
 
       // 🆕 REGISTRAR LOGIN EN BASE DE DATOS
       try {
+        // Primero obtener el login_count actual
+        const { data: currentUser } = await supabase
+          .from('users')
+          .select('login_count')
+          .eq('id', data.id)
+          .single();
+
+        const currentCount = currentUser?.login_count || 0;
+
+        // Actualizar con el nuevo count incrementado
         await supabase
           .from('users')
           .update({ 
             last_login_at: new Date().toISOString(),
-            login_count: supabase.raw('login_count + 1')
+            login_count: currentCount + 1
           })
           .eq('id', data.id);
 
