@@ -38,7 +38,7 @@ export class HotmartService {
           full_name: purchaseData.full_name,
           phone: purchaseData.phone,
           role: 'student',
-          password: this.generateTemporaryPassword(),
+          password: purchaseData.email,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }])
