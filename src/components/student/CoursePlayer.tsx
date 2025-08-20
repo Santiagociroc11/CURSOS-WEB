@@ -560,9 +560,7 @@ export const CoursePlayer: React.FC = () => {
                     {/* Preview del curso */}
                     <div className="lg:col-span-1">
                       <div className="bg-black/30 rounded-lg p-6 backdrop-blur-sm border border-white/10">
-                        <div className="aspect-[3/2] sm:aspect-video bg-gradient-to-br from-gray-700 to-gray-800 rounded-lg flex items-center justify-center mb-4">
-                          <Play className="h-8 w-8 sm:h-12 sm:w-12 text-white/70" />
-                        </div>
+
                         <div className="text-center">
                           <div className="text-green-400 text-sm font-medium mb-1">
                             Progreso del curso
