@@ -24,8 +24,6 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
   const [confirmedName, setConfirmedName] = useState(currentName);
   const [hasChanged, setHasChanged] = useState(false);
 
-  // Debug logging
-  console.log('📋 CertificateNameConfirmation render:', { isOpen, currentName, courseName, isGenerating });
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
@@ -45,10 +43,8 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
     onClose();
   };
 
-  try {
-    console.log('📋 CertificateNameConfirmation about to render Modal with isOpen:', isOpen);
-    return (
-      <Modal isOpen={isOpen} onClose={handleCancel} title="" size="lg">
+  return (
+    <Modal isOpen={isOpen} onClose={handleCancel} title="" size="lg">
       <div className="text-center space-y-6">
         {/* Header con icono */}
         <div className="flex justify-center">

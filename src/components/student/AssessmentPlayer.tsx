@@ -123,10 +123,6 @@ export const AssessmentPlayer: React.FC = () => {
     }
   }, [timeLeft, assessment, hasPassedAttempt]);
 
-  // Debug: monitorear cambios en certificateModalData
-  useEffect(() => {
-    console.log('🔄 certificateModalData cambió:', certificateModalData);
-  }, [certificateModalData]);
 
 
   const handleSubmit = async () => {
@@ -567,19 +563,6 @@ export const AssessmentPlayer: React.FC = () => {
     setCertificateModalData(null);
   };
 
-  // Debug render states
-  console.log('🖼️ Render modal - certificateModalData:', certificateModalData);
-  console.log('🖼️ Modal condition - Should show modal:', !!(certificateModalData?.isOpen));
-  
-  // Log cuando vamos a renderizar el modal
-  if (certificateModalData?.isOpen) {
-    console.log('🚀 VA A RENDERIZAR CertificateNameConfirmation con props:', {
-      isOpen: certificateModalData.isOpen,
-      currentName: userProfile?.full_name || '',
-      courseName: certificateModalData.courseName,
-      isGenerating: generatingCertificate
-    });
-  }
 
   if (loading) {
     return (
@@ -1048,57 +1031,16 @@ export const AssessmentPlayer: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de confirmación de nombre para certificado usando Portal */}
-      {certificateModalData?.isOpen && createPortal(
-        <div 
-          className="fixed inset-0 bg-red-500 bg-opacity-75 flex items-center justify-center"
-          style={{ zIndex: 9999 }}
-          onClick={(e) => {
-            console.log('🔴 Click en backdrop del modal');
-            e.stopPropagation();
-          }}
-          ref={(el) => {
-            if (el) {
-              console.log('🔴 Modal DIV montado en DOM via Portal:', el);
-            } else {
-              console.log('🔴 Modal DIV desmontado del DOM via Portal');
-            }
-          }}
-        >
-          <div 
-            className="bg-white rounded-lg p-8 max-w-md w-full mx-4 border-4 border-red-500"
-            onClick={(e) => {
-              console.log('🔴 Click en contenido del modal');
-              e.stopPropagation();
-            }}
-          >
-            <h2 className="text-2xl font-bold mb-4 text-red-600">🚀 MODAL DE PRUEBA FUNCIONANDO VIA PORTAL!</h2>
-            <p className="mb-4 text-lg">Curso: {certificateModalData.courseName}</p>
-            <p className="mb-4 text-lg">Usuario: {userProfile?.full_name || 'Sin nombre'}</p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => {
-                  console.log('🔴 Click en Cancelar');
-                  handleCancelCertificateGeneration();
-                }}
-                className="px-6 py-3 bg-gray-500 text-white rounded text-lg"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => {
-                  console.log('🔴 Click en Generar');
-                  handleConfirmNameAndGenerateCertificate(userProfile?.full_name || 'Usuario');
-                }}
-                className="px-6 py-3 bg-blue-500 text-white rounded text-lg"
-                disabled={generatingCertificate}
-              >
-                {generatingCertificate ? 'Generando...' : 'Generar Certificado'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
+      {/* Modal de confirmación de nombre para certificado */}
+      {certificateModalData?.isOpen && (
+        <CertificateNameConfirmation
+          isOpen={certificateModalData.isOpen}
+          onClose={handleCancelCertificateGeneration}
+          onConfirm={handleConfirmNameAndGenerateCertificate}
+          currentName={userProfile?.full_name || ''}
+          courseName={certificateModalData.courseName}
+          isGenerating={generatingCertificate}
+        />
       )}
     </div>
   );
