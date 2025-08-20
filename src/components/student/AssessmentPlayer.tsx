@@ -126,67 +126,7 @@ export const AssessmentPlayer: React.FC = () => {
   // Debug: monitorear cambios en certificateModalData
   useEffect(() => {
     console.log('🔄 certificateModalData cambió:', certificateModalData);
-    if (certificateModalData?.isOpen) {
-      console.log('🔄 useEffect detectó modal abierto - creando modal con JavaScript puro');
-      
-      // Crear modal usando JavaScript puro como último recurso
-      const modalDiv = document.createElement('div');
-      modalDiv.id = 'emergency-modal';
-      modalDiv.style.position = 'fixed';
-      modalDiv.style.top = '0';
-      modalDiv.style.left = '0';
-      modalDiv.style.width = '100vw';
-      modalDiv.style.height = '100vh';
-      modalDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
-      modalDiv.style.display = 'flex';
-      modalDiv.style.alignItems = 'center';
-      modalDiv.style.justifyContent = 'center';
-      modalDiv.style.zIndex = '99999';
-      
-      modalDiv.innerHTML = `
-        <div style="background: white; padding: 40px; border-radius: 10px; border: 5px solid red; max-width: 500px; text-align: center;">
-          <h2 style="color: red; font-size: 24px; margin-bottom: 20px;">🚀 MODAL JAVASCRIPT PURO FUNCIONANDO!</h2>
-          <p style="font-size: 18px; margin-bottom: 10px;">Curso: ${certificateModalData.courseName}</p>
-          <p style="font-size: 18px; margin-bottom: 20px;">Usuario: ${userProfile?.full_name || 'Sin nombre'}</p>
-          <div style="display: flex; gap: 10px; justify-content: center;">
-            <button id="cancel-cert" style="padding: 10px 20px; background: #666; color: white; border: none; border-radius: 5px; font-size: 16px;">Cancelar</button>
-            <button id="generate-cert" style="padding: 10px 20px; background: #0066cc; color: white; border: none; border-radius: 5px; font-size: 16px;">Generar Certificado</button>
-          </div>
-        </div>
-      `;
-      
-      // Agregar event listeners
-      const cancelBtn = modalDiv.querySelector('#cancel-cert');
-      const generateBtn = modalDiv.querySelector('#generate-cert');
-      
-      cancelBtn?.addEventListener('click', () => {
-        console.log('🔴 Click en Cancelar (JS puro)');
-        document.body.removeChild(modalDiv);
-        handleCancelCertificateGeneration();
-      });
-      
-      generateBtn?.addEventListener('click', () => {
-        console.log('🔴 Click en Generar (JS puro)');
-        document.body.removeChild(modalDiv);
-        handleConfirmNameAndGenerateCertificate(userProfile?.full_name || 'Usuario');
-      });
-      
-      document.body.appendChild(modalDiv);
-      console.log('🔄 Modal JavaScript puro agregado al DOM');
-      
-      // Cleanup function
-      return () => {
-        try {
-          if (document.getElementById('emergency-modal')) {
-            document.body.removeChild(modalDiv);
-            console.log('🔄 Modal JavaScript puro removido del DOM');
-          }
-        } catch (e) {
-          console.log('🔄 Error removiendo modal:', e);
-        }
-      };
-    }
-  }, [certificateModalData, userProfile, handleCancelCertificateGeneration, handleConfirmNameAndGenerateCertificate]);
+  }, [certificateModalData]);
 
 
   const handleSubmit = async () => {
