@@ -38,7 +38,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
   const studentNavItems = [
     { icon: Library, label: 'Mis Cursos', href: '/student' },
-    { icon: GraduationCap, label: 'Progreso', href: '/student/progress' },
     { icon: Award, label: 'Certificados', href: '/student/certificates' },
     { icon: User, label: 'Perfil', href: '/student/profile' },
   ];

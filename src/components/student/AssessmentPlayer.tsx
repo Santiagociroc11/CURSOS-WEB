@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import supabase from '../../lib/supabase';
 import { Assessment, Question } from '../../types/database';
@@ -8,7 +8,6 @@ import { Card, CardContent, CardHeader } from '../ui/Card';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { Clock, CheckCircle, Award, Download } from 'lucide-react';
 import { certificateService } from '../../services/certificateService';
-import { CertificateNameConfirmation } from './CertificateNameConfirmation';
 
 export const AssessmentPlayer: React.FC = () => {
   const { assessmentId } = useParams<{ assessmentId: string }>();
@@ -25,8 +24,6 @@ export const AssessmentPlayer: React.FC = () => {
   const [hasPassedAttempt, setHasPassedAttempt] = useState(false);
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
-  const [certificateModalData, setCertificateModalData] = useState<{courseName: string, isOpen: boolean} | null>(null);
-  const modalStateRef = useRef<{courseName: string, isOpen: boolean} | null>(null);
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -229,10 +226,8 @@ export const AssessmentPlayer: React.FC = () => {
             
             const courseName = courseResponse.data?.title || 'Curso Completado';
             
-            // Mostrar modal de confirmación de nombre
-            const modalData = { courseName, isOpen: true };
-            modalStateRef.current = modalData;
-            setCertificateModalData(modalData);
+            // Generar certificado directamente
+            await generateCertificateDirectly(courseName);
           } catch (error) {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
@@ -488,31 +483,21 @@ export const AssessmentPlayer: React.FC = () => {
       
       const courseName = courseResponse.data?.title || 'Curso Completado';
       
-      console.log('📋 Información del curso obtenida:', { courseName });
-      
-      // Mostrar modal de confirmación de nombre - Método primario
-      const modalData = { courseName, isOpen: true };
-      console.log('🎯 Configurando modal con datos:', modalData);
-      
-      modalStateRef.current = modalData;
-      setCertificateModalData(modalData);
+      // Generar certificado directamente
+      await generateCertificateDirectly(courseName);
     } catch (error) {
-      console.error('💥 Error en handleGenerateCertificateForPassed:', error);
-      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
-      alert('Error al preparar la generación del certificado: ' + (error instanceof Error ? error.message : 'Error desconocido'));
+      console.error('Error en handleGenerateCertificateForPassed:', error);
+      alert('Error al preparar la generación del certificado. Por favor, inténtalo de nuevo.');
     }
   };
 
-  const handleConfirmNameAndGenerateCertificate = async (confirmedName: string) => {
+  const generateCertificateDirectly = async (courseName: string) => {
     if (!userProfile || !assessment) return;
-    
-    const courseName = certificateModalData?.courseName;
-    if (!courseName) return;
     
     setGeneratingCertificate(true);
     try {
       const certificateResult = await certificateService.generateCertificate(
-        confirmedName, 
+        userProfile.full_name || userProfile.email, 
         courseName
       );
 
@@ -527,14 +512,6 @@ export const AssessmentPlayer: React.FC = () => {
 
         if (error) throw error;
         
-        // Si el nombre fue actualizado, actualizar también el perfil del usuario
-        if (confirmedName !== userProfile.full_name) {
-          await supabase
-            .from('users')
-            .update({ full_name: confirmedName })
-            .eq('id', userProfile.id);
-        }
-        
         setExistingCertificate({
           id: 'new',
           url: certificateResult.certificate.download_url,
@@ -545,10 +522,6 @@ export const AssessmentPlayer: React.FC = () => {
           url: certificateResult.certificate.download_url,
           courseName: courseName
         });
-        
-        // Cerrar modal
-        modalStateRef.current = null;
-        setCertificateModalData(null);
       } else {
         console.error('Error generating certificate:', certificateResult.message);
         alert(`Error al generar el certificado: ${certificateResult.message}`);
@@ -560,11 +533,6 @@ export const AssessmentPlayer: React.FC = () => {
       setGeneratingCertificate(false);
     }
   };
-
-  const handleCancelCertificateGeneration = useCallback(() => {
-    modalStateRef.current = null;
-    setCertificateModalData(null);
-  }, []);
 
 
   if (loading) {
@@ -626,6 +594,7 @@ export const AssessmentPlayer: React.FC = () => {
             </div>
           </CardHeader>
         </Card>
+
 
         {/* Sección de certificado */}
         <Card className="mb-6">
@@ -1034,17 +1003,6 @@ export const AssessmentPlayer: React.FC = () => {
         </div>
       )}
 
-      {/* Modal de confirmación de nombre para certificado */}
-      {(certificateModalData?.isOpen || modalStateRef.current?.isOpen) && (
-        <CertificateNameConfirmation
-          isOpen={certificateModalData?.isOpen || modalStateRef.current?.isOpen || false}
-          onClose={handleCancelCertificateGeneration}
-          onConfirm={handleConfirmNameAndGenerateCertificate}
-          currentName={userProfile?.full_name || ''}
-          courseName={certificateModalData?.courseName || modalStateRef.current?.courseName || ''}
-          isGenerating={generatingCertificate}
-        />
-      )}
     </div>
   );
 };

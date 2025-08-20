@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ReactPlayer from 'react-player';
-import { ChevronLeft, CheckCircle, ListChecks, FileText, Download, ExternalLink, Menu, X, Play, BookOpen } from 'lucide-react';
+import { ChevronLeft, CheckCircle, ListChecks, FileText, Download, ExternalLink, Menu, X, Play, BookOpen, Award, AlertTriangle } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { Course, Module, Content, Progress, Assessment } from '../../types/database';
 import supabase from '../../lib/supabase';
@@ -82,6 +82,13 @@ export const CoursePlayer: React.FC = () => {
   const [showModulesOverview, setShowModulesOverview] = useState(true);
   const [expandedModule, setExpandedModule] = useState<string | null>(null);
   const [completionAnimation, setCompletionAnimation] = useState(false);
+  const [certificateStatus, setCertificateStatus] = useState<{
+    canGenerate: boolean;
+    hasExisting: boolean;
+    contentCompletion: number;
+    assessmentsCompleted: boolean;
+    certificateUrl?: string;
+  } | null>(null);
 
   const fetchCourseData = useCallback(async () => {
     console.log('fetchCourseData called with:', { courseId, userProfile: !!userProfile });
@@ -170,7 +177,60 @@ export const CoursePlayer: React.FC = () => {
     }
   }, [courseId, userProfile]);
 
+  const checkCertificateStatus = useCallback(async () => {
+    if (!userProfile || !courseId) return;
+
+    try {
+      // Verificar si ya existe un certificado
+      const { data: existingCert } = await supabase
+        .from('certificates')
+        .select('certificate_url')
+        .eq('user_id', userProfile.id)
+        .eq('course_id', courseId)
+        .maybeSingle();
+
+      // Obtener contenidos del curso
+      const allContent = modules.flatMap(m => m.content);
+      const totalContents = allContent.length;
+      const completedContents = allContent.filter(c => 
+        progress.some(p => p.content_id === c.id && p.completed)
+      ).length;
+      
+      const contentCompletion = totalContents > 0 ? Math.round((completedContents / totalContents) * 100) : 0;
+
+      // Verificar evaluaciones
+      const { data: userAttempts } = await supabase
+        .from('attempt_results')
+        .select('assessment_id')
+        .eq('user_id', userProfile.id)
+        .eq('passed', true);
+
+      const completedAssessmentIds = userAttempts?.map(a => a.assessment_id) || [];
+      const assessmentsCompleted = assessments.length === 0 || 
+        assessments.every(a => completedAssessmentIds.includes(a.id));
+
+      const canGenerate = contentCompletion >= 80 && assessmentsCompleted && !existingCert;
+
+      setCertificateStatus({
+        canGenerate,
+        hasExisting: !!existingCert,
+        contentCompletion,
+        assessmentsCompleted,
+        certificateUrl: existingCert?.certificate_url
+      });
+    } catch (error) {
+      console.error('Error checking certificate status:', error);
+    }
+  }, [userProfile, courseId, modules, progress, assessments]);
+
+
   useEffect(() => { fetchCourseData(); }, [fetchCourseData]);
+
+  useEffect(() => {
+    if (modules.length > 0 && progress.length >= 0 && assessments.length >= 0) {
+      checkCertificateStatus();
+    }
+  }, [checkCertificateStatus, modules, progress, assessments]);
 
   // Prevent body scroll when mobile sidebar is open
   useEffect(() => {
@@ -416,6 +476,7 @@ export const CoursePlayer: React.FC = () => {
             {completedContentIds.size} de {modules.reduce((acc, m) => acc + m.content.length, 0)} lecciones completadas
           </p>
         </div>
+
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 max-h-[calc(100vh-300px)]">
           {modules.map((module) => (
@@ -561,19 +622,62 @@ export const CoursePlayer: React.FC = () => {
                     <div className="lg:col-span-1">
                       <div className="bg-black/30 rounded-lg p-6 backdrop-blur-sm border border-white/10">
 
-                        <div className="text-center">
-                          <div className="text-green-400 text-sm font-medium mb-1">
-                            Progreso del curso
+                        <div className="text-center space-y-4">
+                          <div>
+                            <div className="text-green-400 text-sm font-medium mb-1">
+                              Progreso del curso
+                            </div>
+                            <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
+                              <div 
+                                className="bg-green-500 h-2 rounded-full transition-all duration-700 ease-out" 
+                                style={{ width: `${courseProgressPercentage}%` }}
+                              ></div>
+                            </div>
+                            <div className="text-white text-sm">
+                              {completedContentIds.size} de {modules.reduce((acc, m) => acc + m.content.length, 0)} lecciones completadas
+                            </div>
                           </div>
-                          <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                            <div 
-                              className="bg-green-500 h-2 rounded-full transition-all duration-700 ease-out" 
-                              style={{ width: `${courseProgressPercentage}%` }}
-                            ></div>
-                          </div>
-                          <div className="text-white text-sm">
-                            {completedContentIds.size} de {modules.reduce((acc, m) => acc + m.content.length, 0)} lecciones completadas
-                          </div>
+
+                          {/* Certificate Button */}
+                          {certificateStatus && (
+                            <div className="pt-4 border-t border-white/10">
+                              {certificateStatus.hasExisting ? (
+                                <Button
+                                  onClick={() => navigate('/student/certificates')}
+                                  className="w-full bg-gradient-to-r from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                                >
+                                  <Award className="h-4 w-4 mr-2" />
+                                  Ver Certificado
+                                </Button>
+                              ) : certificateStatus.canGenerate ? (
+                                <Button
+                                  onClick={() => navigate('/student/certificates')}
+                                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-all duration-200 hover:scale-105 shadow-lg"
+                                >
+                                  <Award className="h-4 w-4 mr-2" />
+                                  Obtener Certificado
+                                </Button>
+                              ) : (
+                                <Button
+                                  onClick={() => navigate('/student/certificates')}
+                                  variant="outline"
+                                  className="w-full border-white/30 text-white hover:bg-white/10 font-semibold py-2.5 px-4 rounded-lg transition-all duration-200"
+                                >
+                                  <AlertTriangle className="h-4 w-4 mr-2" />
+                                  Requisitos para Certificado
+                                </Button>
+                              )}
+                              <div className="mt-2 text-xs text-gray-400">
+                                {certificateStatus.hasExisting ? (
+                                  'Certificado disponible'
+                                ) : certificateStatus.canGenerate ? (
+                                  '¡Listo para certificar!'
+                                ) : (
+                                  `${certificateStatus.contentCompletion}% completado • ${certificateStatus.assessmentsCompleted ? 'Evaluaciones ✓' : 'Evaluaciones pendientes'}`
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
