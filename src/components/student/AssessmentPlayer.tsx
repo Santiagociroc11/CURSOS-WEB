@@ -1055,14 +1055,22 @@ export const AssessmentPlayer: React.FC = () => {
 
       {/* Modal de confirmación de nombre para certificado */}
       {(certificateModalData?.isOpen || showCertModal) && (
-        <CertificateNameConfirmation
-          isOpen={certificateModalData?.isOpen || showCertModal}
-          onClose={handleCancelCertificateGeneration}
-          onConfirm={handleConfirmNameAndGenerateCertificate}
-          currentName={userProfile?.full_name || ''}
-          courseName={certificateModalData?.courseName || certCourseName}
-          isGenerating={generatingCertificate}
-        />
+        <>
+          {console.log('🚀 Intentando renderizar CertificateNameConfirmation con props:', {
+            isOpen: certificateModalData?.isOpen || showCertModal,
+            currentName: userProfile?.full_name || '',
+            courseName: certificateModalData?.courseName || certCourseName,
+            isGenerating: generatingCertificate
+          })}
+          <CertificateNameConfirmation
+            isOpen={certificateModalData?.isOpen || showCertModal}
+            onClose={handleCancelCertificateGeneration}
+            onConfirm={handleConfirmNameAndGenerateCertificate}
+            currentName={userProfile?.full_name || ''}
+            courseName={certificateModalData?.courseName || certCourseName}
+            isGenerating={generatingCertificate}
+          />
+        </>
       )}
     </div>
   );

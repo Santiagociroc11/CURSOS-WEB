@@ -45,8 +45,10 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
     onClose();
   };
 
-  return (
-    <Modal isOpen={isOpen} onClose={handleCancel} title="" size="lg">
+  try {
+    console.log('📋 CertificateNameConfirmation about to render Modal with isOpen:', isOpen);
+    return (
+      <Modal isOpen={isOpen} onClose={handleCancel} title="" size="lg">
       <div className="text-center space-y-6">
         {/* Header con icono */}
         <div className="flex justify-center">
@@ -155,5 +157,9 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
         </p>
       </div>
     </Modal>
-  );
+    );
+  } catch (error) {
+    console.error('💥 Error rendering CertificateNameConfirmation:', error);
+    return <div>Error rendering modal: {error instanceof Error ? error.message : 'Unknown error'}</div>;
+  }
 };
