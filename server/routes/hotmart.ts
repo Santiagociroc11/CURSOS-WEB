@@ -53,7 +53,16 @@ router.post('/process-purchase', validateAuth, validatePurchaseData, async (req:
     // Procesar compra completa
     const result = await HotmartService.processPurchase(purchaseData);
 
-    res.status(201).json({ 
+    const statusCode = result.transactionAlreadyProcessed ? 200 : 201;
+    const message = result.transactionAlreadyProcessed 
+      ? 'Transacción ya procesada anteriormente'
+      : result.isNewUser && result.isNewEnrollment 
+        ? 'Usuario creado e inscrito exitosamente'
+        : !result.isNewUser && result.isNewEnrollment
+          ? 'Usuario existente inscrito exitosamente'
+          : 'Usuario existente ya estaba inscrito - transacción registrada';
+
+    res.status(statusCode).json({ 
       success: true, 
       data: {
         user: {
@@ -67,11 +76,14 @@ router.post('/process-purchase', validateAuth, validatePurchaseData, async (req:
           user_id: result.enrollment.user_id,
           course_id: result.enrollment.course_id,
           enrolled_at: result.enrollment.enrolled_at,
-          progress_percentage: result.enrollment.progress_percentage
+          progress_percentage: result.enrollment.progress_percentage,
+          transaction_id: result.enrollment.transaction_id
         },
-        is_new_user: result.isNewUser
+        is_new_user: result.isNewUser,
+        is_new_enrollment: result.isNewEnrollment,
+        transaction_already_processed: result.transactionAlreadyProcessed
       },
-      message: `Usuario ${result.isNewUser ? 'creado' : 'encontrado'} e inscrito exitosamente`
+      message
     });
 
   } catch (error) {

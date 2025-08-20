@@ -71,6 +71,8 @@ export interface Enrollment {
   completed_at?: string;
   progress_percentage: number;
   last_accessed_at?: string;
+  transaction_id?: string;
+  updated_at?: string;
   user?: User;
   course?: Course;
 }

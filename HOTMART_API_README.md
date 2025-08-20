@@ -39,7 +39,7 @@ Content-Type: application/json
 }
 ```
 
-#### Respuesta Exitosa (201)
+#### Respuesta Exitosa (201/200)
 ```json
 {
   "success": true,
@@ -55,13 +55,20 @@ Content-Type: application/json
       "user_id": "user-uuid",
       "course_id": "course-uuid",
       "enrolled_at": "2025-01-01T00:00:00Z",
-      "progress_percentage": 0
+      "progress_percentage": 0,
+      "transaction_id": "hotmart-transaction-id"
     },
-    "is_new_user": true
+    "is_new_user": true,
+    "is_new_enrollment": true,
+    "transaction_already_processed": false
   },
   "message": "Usuario creado e inscrito exitosamente"
 }
 ```
+
+#### Códigos de Respuesta
+- **201**: Nueva transacción procesada exitosamente
+- **200**: Transacción ya procesada anteriormente (duplicada)
 
 ### 2. Crear Usuario Únicamente
 
@@ -258,9 +265,109 @@ function mapProductToCourse(hotmartProductId) {
 4. Tu backend llama al endpoint `/api/hotmart/process-purchase`
 5. El usuario recibe un email con sus credenciales de acceso
 
+## Manejo de Casos Duplicados
+
+El sistema maneja inteligentemente todos los escenarios posibles:
+
+### Escenario 1: Usuario Nuevo + Curso Nuevo
+```json
+{
+  "is_new_user": true,
+  "is_new_enrollment": true,
+  "transaction_already_processed": false,
+  "message": "Usuario creado e inscrito exitosamente"
+}
+```
+
+### Escenario 2: Usuario Existente + Curso Nuevo
+```json
+{
+  "is_new_user": false,
+  "is_new_enrollment": true,
+  "transaction_already_processed": false,
+  "message": "Usuario existente inscrito exitosamente"
+}
+```
+
+### Escenario 3: Usuario Existente + Ya Inscrito
+```json
+{
+  "is_new_user": false,
+  "is_new_enrollment": false,
+  "transaction_already_processed": false,
+  "message": "Usuario existente ya estaba inscrito - transacción registrada"
+}
+```
+
+### Escenario 4: Transacción Duplicada
+```json
+{
+  "is_new_user": false,
+  "is_new_enrollment": false,
+  "transaction_already_processed": true,
+  "message": "Transacción ya procesada anteriormente"
+}
+```
+
+**Nota**: En el escenario 4, la respuesta es 200 (OK) en lugar de 201 (Created).
+
+## Migración de Base de Datos
+
+Antes de usar el nuevo sistema, ejecuta esta migración en Supabase:
+
+```sql
+-- Agregar transaction_id y updated_at a enrollments
+ALTER TABLE enrollments 
+ADD COLUMN transaction_id text,
+ADD COLUMN updated_at timestamp with time zone DEFAULT now();
+
+-- Crear índice para mejorar rendimiento
+CREATE INDEX idx_enrollments_transaction_id 
+ON enrollments(transaction_id);
+
+-- Restricción única para prevenir inscripciones duplicadas
+-- CRÍTICO: Previene condiciones de carrera con webhooks simultáneos
+ALTER TABLE enrollments 
+ADD CONSTRAINT unique_user_course_enrollment 
+UNIQUE (user_id, course_id);
+```
+
+## Protección Contra Condiciones de Carrera
+
+### ¿Qué pasa si llegan 2 webhooks SIN transaction_id?
+
+| Escenario | Protección | Resultado |
+|-----------|------------|-----------|
+| **Con transaction_id** | ✅ Detección por ID | 200 - Ya procesada |
+| **Sin transaction_id** | ✅ Restricción única BD | No duplicados |
+| **Webhooks simultáneos** | ✅ Error 23505 manejado | Busca existente |
+
+### Flujo de Manejo de Errores
+
+```javascript
+// Si falla la inserción por restricción única
+if (error.code === '23505') {
+  // Buscar la inscripción existente
+  const existingEnrollment = await supabase
+    .from('enrollments')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .single();
+    
+  return existingEnrollment; // ✅ No error, devuelve existente
+}
+```
+
+### Script de Prueba
+
+Ejecuta `node test_duplicate_scenarios.js` para probar todos los escenarios.
+
 ## Notas Adicionales
 
 - Los usuarios se crean con contraseñas temporales aleatorias
 - Se envía un email de bienvenida (necesitas implementar el servicio de email)
 - Si el usuario ya existe, solo se crea la inscripción
 - Todas las operaciones son idempotentes (seguras para repetir)
+- Los `transaction_id` previenen el procesamiento duplicado de webhooks
+- El sistema registra automáticamente qué transacción generó cada inscripción

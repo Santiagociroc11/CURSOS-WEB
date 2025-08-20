@@ -63,6 +63,13 @@ export class HotmartService {
    * Inscribe automáticamente al usuario en el curso comprado
    */
   static async enrollUserInCourse(userId: string, courseId: string): Promise<Enrollment> {
+    return this.enrollUserInCourseWithTransaction(userId, courseId);
+  }
+
+  /**
+   * Inscribe automáticamente al usuario en el curso comprado con transaction_id
+   */
+  static async enrollUserInCourseWithTransaction(userId: string, courseId: string, transactionId?: string): Promise<Enrollment> {
     try {
       // Verificar si ya está inscrito
       const { data: existingEnrollment } = await supabase
@@ -84,7 +91,8 @@ export class HotmartService {
           course_id: courseId,
           enrolled_at: new Date().toISOString(),
           progress_percentage: 0,
-          last_accessed_at: null
+          last_accessed_at: null,
+          transaction_id: transactionId || null
         }])
         .select(`
           *,
@@ -94,6 +102,30 @@ export class HotmartService {
         .single();
 
       if (error) {
+        // Si es error de restricción única (condición de carrera), 
+        // buscar y devolver la inscripción existente
+        if (error.code === '23505' || error.message.includes('unique_user_course_enrollment')) {
+          console.log(`Condición de carrera detectada para usuario ${userId} en curso ${courseId}. Buscando inscripción existente...`);
+          
+          const { data: existingEnrollment, error: fetchError } = await supabase
+            .from('enrollments')
+            .select(`
+              *,
+              course:courses(*),
+              user:users(*)
+            `)
+            .eq('user_id', userId)
+            .eq('course_id', courseId)
+            .single();
+
+          if (fetchError || !existingEnrollment) {
+            throw new Error(`Error fatal: No se pudo crear ni encontrar inscripción para usuario ${userId} en curso ${courseId}`);
+          }
+
+          return existingEnrollment;
+        }
+        
+        // Para otros errores, lanzar excepción
         throw new Error(`Error inscribiendo usuario: ${error.message}`);
       }
 
@@ -111,9 +143,29 @@ export class HotmartService {
     user: User;
     enrollment: Enrollment;
     isNewUser: boolean;
+    isNewEnrollment: boolean;
+    transactionAlreadyProcessed: boolean;
   }> {
     try {
-      // Verificar si el usuario ya existía
+      // 1. Verificar si esta transacción ya fue procesada
+      const { data: existingTransaction } = await supabase
+        .from('enrollments')
+        .select('*, user:users(*)')
+        .eq('transaction_id', purchaseData.transaction_id)
+        .single();
+
+      if (existingTransaction) {
+        console.log(`Transacción ${purchaseData.transaction_id} ya fue procesada anteriormente`);
+        return {
+          user: existingTransaction.user!,
+          enrollment: existingTransaction,
+          isNewUser: false,
+          isNewEnrollment: false,
+          transactionAlreadyProcessed: true
+        };
+      }
+
+      // 2. Verificar si el usuario ya existía
       const { data: existingUser } = await supabase
         .from('users')
         .select('*')
@@ -122,16 +174,49 @@ export class HotmartService {
 
       const isNewUser = !existingUser;
 
-      // Crear o obtener usuario
+      // 3. Crear o obtener usuario
       const user = await this.createUserFromPurchase(purchaseData);
 
-      // Inscribir en el curso
-      const enrollment = await this.enrollUserInCourse(user.id, purchaseData.course_id);
+      // 4. Verificar si ya está inscrito en este curso
+      const { data: existingEnrollment } = await supabase
+        .from('enrollments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('course_id', purchaseData.course_id)
+        .single();
+
+      let enrollment: Enrollment;
+      let isNewEnrollment = true;
+
+      if (existingEnrollment) {
+        // Ya está inscrito, actualizar con transaction_id
+        const { data: updatedEnrollment, error } = await supabase
+          .from('enrollments')
+          .update({ 
+            transaction_id: purchaseData.transaction_id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingEnrollment.id)
+          .select()
+          .single();
+
+        if (error) throw new Error(`Error actualizando inscripción: ${error.message}`);
+        
+        enrollment = updatedEnrollment;
+        isNewEnrollment = false;
+        console.log(`Usuario ${user.email} ya estaba inscrito en curso ${purchaseData.course_id}`);
+      } else {
+        // Crear nueva inscripción con transaction_id
+        enrollment = await this.enrollUserInCourseWithTransaction(user.id, purchaseData.course_id, purchaseData.transaction_id);
+        isNewEnrollment = true;
+      }
 
       return {
         user,
         enrollment,
-        isNewUser
+        isNewUser,
+        isNewEnrollment,
+        transactionAlreadyProcessed: false
       };
     } catch (error) {
       console.error('Error procesando compra de Hotmart:', error);
