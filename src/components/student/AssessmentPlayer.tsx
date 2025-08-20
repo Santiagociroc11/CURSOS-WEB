@@ -26,6 +26,8 @@ export const AssessmentPlayer: React.FC = () => {
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
   const [certificateModalData, setCertificateModalData] = useState<{courseName: string, isOpen: boolean} | null>(null);
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [certCourseName, setCertCourseName] = useState('');
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -121,6 +123,11 @@ export const AssessmentPlayer: React.FC = () => {
       handleSubmit();
     }
   }, [timeLeft, assessment, hasPassedAttempt]);
+
+  // Debug: monitorear cambios en certificateModalData
+  useEffect(() => {
+    console.log('🔄 certificateModalData cambió:', certificateModalData);
+  }, [certificateModalData]);
 
   const handleSubmit = async () => {
     if (!userProfile || !assessment || submitting) return;
@@ -228,6 +235,8 @@ export const AssessmentPlayer: React.FC = () => {
             
             // Mostrar modal de confirmación de nombre
             setCertificateModalData({ courseName, isOpen: true });
+            setCertCourseName(courseName);
+            setShowCertModal(true);
           } catch (error) {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
@@ -485,18 +494,17 @@ export const AssessmentPlayer: React.FC = () => {
       
       console.log('📋 Información del curso obtenida:', { courseName });
       
-      // Mostrar modal de confirmación de nombre
-      setCertificateModalData({ courseName, isOpen: true });
+      // Mostrar modal de confirmación de nombre - Método primario
+      const modalData = { courseName, isOpen: true };
+      console.log('🎯 Configurando modal con datos:', modalData);
       
-      console.log('🎯 Modal de confirmación de nombre activado');
+      setCertificateModalData(modalData);
       
-      // Debug: verificar que el estado se configuró correctamente
-      setTimeout(() => {
-        console.log('🔍 Estado después de configurar modal:', {
-          certificateModalData,
-          userProfile: userProfile ? { id: userProfile.id, name: userProfile.full_name } : null
-        });
-      }, 100);
+      // Método de respaldo usando estados separados
+      setCertCourseName(courseName);
+      setShowCertModal(true);
+      
+      console.log('🎯 Modal de confirmación de nombre activado (ambos métodos)');
     } catch (error) {
       console.error('💥 Error en handleGenerateCertificateForPassed:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -505,13 +513,16 @@ export const AssessmentPlayer: React.FC = () => {
   };
 
   const handleConfirmNameAndGenerateCertificate = async (confirmedName: string) => {
-    if (!userProfile || !assessment || !certificateModalData) return;
+    if (!userProfile || !assessment) return;
+    
+    const courseName = certificateModalData?.courseName || certCourseName;
+    if (!courseName) return;
     
     setGeneratingCertificate(true);
     try {
       const certificateResult = await certificateService.generateCertificate(
         confirmedName, 
-        certificateModalData.courseName
+        courseName
       );
 
       if (certificateResult.success) {
@@ -541,11 +552,13 @@ export const AssessmentPlayer: React.FC = () => {
         
         setCertificateGenerated({
           url: certificateResult.certificate.download_url,
-          courseName: certificateModalData.courseName
+          courseName: courseName
         });
         
         // Cerrar modal
         setCertificateModalData(null);
+        setShowCertModal(false);
+        setCertCourseName('');
       } else {
         console.error('Error generating certificate:', certificateResult.message);
         alert(`Error al generar el certificado: ${certificateResult.message}`);
@@ -560,6 +573,8 @@ export const AssessmentPlayer: React.FC = () => {
 
   const handleCancelCertificateGeneration = () => {
     setCertificateModalData(null);
+    setShowCertModal(false);
+    setCertCourseName('');
   };
 
   if (loading) {
@@ -1030,6 +1045,7 @@ export const AssessmentPlayer: React.FC = () => {
       )}
 
       {/* Modal de confirmación de nombre para certificado */}
+      {/* Método primario */}
       {certificateModalData && (
         <CertificateNameConfirmation
           isOpen={certificateModalData.isOpen}
@@ -1037,6 +1053,18 @@ export const AssessmentPlayer: React.FC = () => {
           onConfirm={handleConfirmNameAndGenerateCertificate}
           currentName={userProfile?.full_name || ''}
           courseName={certificateModalData.courseName}
+          isGenerating={generatingCertificate}
+        />
+      )}
+      
+      {/* Método de respaldo */}
+      {!certificateModalData && showCertModal && certCourseName && (
+        <CertificateNameConfirmation
+          isOpen={showCertModal}
+          onClose={handleCancelCertificateGeneration}
+          onConfirm={handleConfirmNameAndGenerateCertificate}
+          currentName={userProfile?.full_name || ''}
+          courseName={certCourseName}
           isGenerating={generatingCertificate}
         />
       )}
