@@ -584,6 +584,7 @@ export const AssessmentPlayer: React.FC = () => {
 
   // Debug render states
   console.log('🖼️ Render modal - certificateModalData:', certificateModalData, 'showCertModal:', showCertModal, 'certCourseName:', certCourseName);
+  console.log('🖼️ Modal conditions - Primary modal:', !!(certificateModalData), 'Secondary modal:', !!(!certificateModalData && showCertModal && certCourseName));
 
   if (loading) {
     return (
@@ -1053,26 +1054,13 @@ export const AssessmentPlayer: React.FC = () => {
       )}
 
       {/* Modal de confirmación de nombre para certificado */}
-      {/* Método primario */}
-      {certificateModalData && (
+      {(certificateModalData?.isOpen || showCertModal) && (
         <CertificateNameConfirmation
-          isOpen={certificateModalData.isOpen}
+          isOpen={certificateModalData?.isOpen || showCertModal}
           onClose={handleCancelCertificateGeneration}
           onConfirm={handleConfirmNameAndGenerateCertificate}
           currentName={userProfile?.full_name || ''}
-          courseName={certificateModalData.courseName}
-          isGenerating={generatingCertificate}
-        />
-      )}
-      
-      {/* Método de respaldo */}
-      {!certificateModalData && showCertModal && certCourseName && (
-        <CertificateNameConfirmation
-          isOpen={showCertModal}
-          onClose={handleCancelCertificateGeneration}
-          onConfirm={handleConfirmNameAndGenerateCertificate}
-          currentName={userProfile?.full_name || ''}
-          courseName={certCourseName}
+          courseName={certificateModalData?.courseName || certCourseName}
           isGenerating={generatingCertificate}
         />
       )}
