@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import supabase from '../../lib/supabase';
 import { Assessment, Question } from '../../types/database';
@@ -27,6 +26,7 @@ export const AssessmentPlayer: React.FC = () => {
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
   const [certificateModalData, setCertificateModalData] = useState<{courseName: string, isOpen: boolean} | null>(null);
+  const modalStateRef = useRef<{courseName: string, isOpen: boolean} | null>(null);
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -230,7 +230,9 @@ export const AssessmentPlayer: React.FC = () => {
             const courseName = courseResponse.data?.title || 'Curso Completado';
             
             // Mostrar modal de confirmación de nombre
-            setCertificateModalData({ courseName, isOpen: true });
+            const modalData = { courseName, isOpen: true };
+            modalStateRef.current = modalData;
+            setCertificateModalData(modalData);
           } catch (error) {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
@@ -492,9 +494,8 @@ export const AssessmentPlayer: React.FC = () => {
       const modalData = { courseName, isOpen: true };
       console.log('🎯 Configurando modal con datos:', modalData);
       
+      modalStateRef.current = modalData;
       setCertificateModalData(modalData);
-      
-      console.log('🎯 Modal de confirmación de nombre activado');
     } catch (error) {
       console.error('💥 Error en handleGenerateCertificateForPassed:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -546,6 +547,7 @@ export const AssessmentPlayer: React.FC = () => {
         });
         
         // Cerrar modal
+        modalStateRef.current = null;
         setCertificateModalData(null);
       } else {
         console.error('Error generating certificate:', certificateResult.message);
@@ -559,9 +561,10 @@ export const AssessmentPlayer: React.FC = () => {
     }
   };
 
-  const handleCancelCertificateGeneration = () => {
+  const handleCancelCertificateGeneration = useCallback(() => {
+    modalStateRef.current = null;
     setCertificateModalData(null);
-  };
+  }, []);
 
 
   if (loading) {
@@ -1032,13 +1035,13 @@ export const AssessmentPlayer: React.FC = () => {
       )}
 
       {/* Modal de confirmación de nombre para certificado */}
-      {certificateModalData?.isOpen && (
+      {(certificateModalData?.isOpen || modalStateRef.current?.isOpen) && (
         <CertificateNameConfirmation
-          isOpen={certificateModalData.isOpen}
+          isOpen={certificateModalData?.isOpen || modalStateRef.current?.isOpen || false}
           onClose={handleCancelCertificateGeneration}
           onConfirm={handleConfirmNameAndGenerateCertificate}
           currentName={userProfile?.full_name || ''}
-          courseName={certificateModalData.courseName}
+          courseName={certificateModalData?.courseName || modalStateRef.current?.courseName || ''}
           isGenerating={generatingCertificate}
         />
       )}
