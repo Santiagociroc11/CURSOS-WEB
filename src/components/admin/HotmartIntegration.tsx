@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, AlertTriangle, Settings, ExternalLink, BookOpen, Code, Eye, EyeOff } from 'lucide-react';
+import { Copy, Check, AlertTriangle, Settings, ExternalLink, BookOpen, Code, Eye, EyeOff, FileText } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import supabase from '../../lib/supabase';
 import { Course } from '../../types/database';
+import { SwaggerDocs } from './SwaggerDocs';
 
 interface CourseWithId extends Course {
   enrollment_count?: number;
 }
 
 export const HotmartIntegration: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'config' | 'docs'>('config');
   const [courses, setCourses] = useState<CourseWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -116,10 +118,42 @@ export const HotmartIntegration: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Integración con Hotmart</h1>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-6">
           Configura la integración automática para crear usuarios e inscripciones desde las compras de Hotmart
         </p>
+        
+        {/* Tabs */}
+        <div className="flex space-x-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setActiveTab('config')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'config'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Settings className="h-4 w-4" />
+            <span>Configuración</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('docs')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'docs'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <FileText className="h-4 w-4" />
+            <span>Documentación API</span>
+          </button>
+        </div>
       </div>
+
+      {/* Tab Content */}
+      {activeTab === 'docs' ? (
+        <SwaggerDocs />
+      ) : (
+        <div className="space-y-8">
 
       {/* Configuration Card */}
       <Card>
@@ -408,6 +442,8 @@ export const HotmartIntegration: React.FC = () => {
           </div>
         </CardContent>
       </Card>
+        </div>
+      )}
     </div>
   );
 };
