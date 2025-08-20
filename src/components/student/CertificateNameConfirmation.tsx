@@ -24,6 +24,9 @@ export const CertificateNameConfirmation: React.FC<CertificateNameConfirmationPr
   const [confirmedName, setConfirmedName] = useState(currentName);
   const [hasChanged, setHasChanged] = useState(false);
 
+  // Debug logging
+  console.log('📋 CertificateNameConfirmation render:', { isOpen, currentName, courseName, isGenerating });
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newName = e.target.value;
     setConfirmedName(newName);

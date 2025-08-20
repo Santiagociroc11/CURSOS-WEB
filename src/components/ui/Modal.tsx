@@ -16,7 +16,11 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   size = 'md'
 }) => {
-  if (!isOpen) return null;
+  console.log('🔧 Modal render:', { isOpen, title, size });
+  if (!isOpen) {
+    console.log('🔧 Modal not open, returning null');
+    return null;
+  }
 
   const sizes = {
     sm: 'max-w-md',
@@ -25,6 +29,7 @@ export const Modal: React.FC<ModalProps> = ({
     xl: 'max-w-4xl',
   };
 
+  console.log('🔧 Modal rendering with classes and content');
   return (
     <div className="fixed inset-0 z-[60] overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4">
