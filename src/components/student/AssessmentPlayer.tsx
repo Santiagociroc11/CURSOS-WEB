@@ -25,8 +25,7 @@ export const AssessmentPlayer: React.FC = () => {
   const [hasPassedAttempt, setHasPassedAttempt] = useState(false);
   const [passedAttemptData, setPassedAttemptData] = useState<{score: number, passed_at: string} | null>(null);
   const [existingCertificate, setExistingCertificate] = useState<{id: string, url?: string, issued_at: string} | null>(null);
-  const [showNameConfirmation, setShowNameConfirmation] = useState(false);
-  const [pendingCourseInfo, setPendingCourseInfo] = useState<{courseName: string} | null>(null);
+  const [certificateModalData, setCertificateModalData] = useState<{courseName: string, isOpen: boolean} | null>(null);
 
   const fetchAssessment = useCallback(async () => {
     if (!assessmentId || !userProfile) return;
@@ -228,8 +227,7 @@ export const AssessmentPlayer: React.FC = () => {
             const courseName = courseResponse.data?.title || 'Curso Completado';
             
             // Mostrar modal de confirmación de nombre
-            setPendingCourseInfo({ courseName });
-            setShowNameConfirmation(true);
+            setCertificateModalData({ courseName, isOpen: true });
           } catch (error) {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
@@ -488,10 +486,17 @@ export const AssessmentPlayer: React.FC = () => {
       console.log('📋 Información del curso obtenida:', { courseName });
       
       // Mostrar modal de confirmación de nombre
-      setPendingCourseInfo({ courseName });
-      setShowNameConfirmation(true);
+      setCertificateModalData({ courseName, isOpen: true });
       
       console.log('🎯 Modal de confirmación de nombre activado');
+      
+      // Debug: verificar que el estado se configuró correctamente
+      setTimeout(() => {
+        console.log('🔍 Estado después de configurar modal:', {
+          certificateModalData,
+          userProfile: userProfile ? { id: userProfile.id, name: userProfile.full_name } : null
+        });
+      }, 100);
     } catch (error) {
       console.error('💥 Error en handleGenerateCertificateForPassed:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace available');
@@ -500,13 +505,13 @@ export const AssessmentPlayer: React.FC = () => {
   };
 
   const handleConfirmNameAndGenerateCertificate = async (confirmedName: string) => {
-    if (!userProfile || !assessment || !pendingCourseInfo) return;
+    if (!userProfile || !assessment || !certificateModalData) return;
     
     setGeneratingCertificate(true);
     try {
       const certificateResult = await certificateService.generateCertificate(
         confirmedName, 
-        pendingCourseInfo.courseName
+        certificateModalData.courseName
       );
 
       if (certificateResult.success) {
@@ -536,12 +541,11 @@ export const AssessmentPlayer: React.FC = () => {
         
         setCertificateGenerated({
           url: certificateResult.certificate.download_url,
-          courseName: pendingCourseInfo.courseName
+          courseName: certificateModalData.courseName
         });
         
         // Cerrar modal
-        setShowNameConfirmation(false);
-        setPendingCourseInfo(null);
+        setCertificateModalData(null);
       } else {
         console.error('Error generating certificate:', certificateResult.message);
         alert(`Error al generar el certificado: ${certificateResult.message}`);
@@ -555,8 +559,7 @@ export const AssessmentPlayer: React.FC = () => {
   };
 
   const handleCancelCertificateGeneration = () => {
-    setShowNameConfirmation(false);
-    setPendingCourseInfo(null);
+    setCertificateModalData(null);
   };
 
   if (loading) {
@@ -1027,13 +1030,13 @@ export const AssessmentPlayer: React.FC = () => {
       )}
 
       {/* Modal de confirmación de nombre para certificado */}
-      {pendingCourseInfo && (
+      {certificateModalData && (
         <CertificateNameConfirmation
-          isOpen={showNameConfirmation}
+          isOpen={certificateModalData.isOpen}
           onClose={handleCancelCertificateGeneration}
           onConfirm={handleConfirmNameAndGenerateCertificate}
           currentName={userProfile?.full_name || ''}
-          courseName={pendingCourseInfo.courseName}
+          courseName={certificateModalData.courseName}
           isGenerating={generatingCertificate}
         />
       )}
