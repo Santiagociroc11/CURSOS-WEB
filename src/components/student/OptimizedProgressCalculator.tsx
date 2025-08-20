@@ -155,6 +155,8 @@ export const updateProgressInDB = async (enrollmentsWithProgress: any[]) => {
     })
     .map(enrollment => ({
       id: enrollment.id,
+      user_id: enrollment.user_id,
+      course_id: enrollment.course_id,
       progress_percentage: enrollment.realProgress.overallPercentage,
       last_accessed_at: new Date().toISOString()
     }));
