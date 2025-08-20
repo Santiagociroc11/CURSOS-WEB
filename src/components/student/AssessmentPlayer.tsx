@@ -149,37 +149,75 @@ export const AssessmentPlayer: React.FC = () => {
       if (error) throw error;
 
       if (passed) {
-        // Check for course completion
-        // Primero obtener todos los módulos del curso, luego su contenido
+        // Verificar completitud del curso con información detallada
         const { data: courseModules } = await supabase
           .from('modules')
-          .select('id')
-          .eq('course_id', assessment.course_id);
+          .select('id, title, order_index')
+          .eq('course_id', assessment.course_id)
+          .order('order_index');
         
         const moduleIds = courseModules?.map(m => m.id) || [];
         console.log('Course modules found:', courseModules?.length, 'Module IDs:', moduleIds);
         
         const { data: courseContents, error: contentError } = moduleIds.length > 0 
-          ? await supabase.from('content').select('id').in('module_id', moduleIds)
+          ? await supabase
+              .from('content')
+              .select('id, title, module_id, order_index, type')
+              .in('module_id', moduleIds)
+              .order('order_index')
           : { data: [], error: null };
         
         if (contentError) {
           console.error('Error fetching course content:', contentError);
         }
         console.log('Course content found:', courseContents?.length);
-        const { data: courseAssessments } = await supabase.from('assessments').select('id').eq('course_id', assessment.course_id);
-        const { data: userProgress } = await supabase.from('progress').select('content_id').eq('user_id', userProfile.id).eq('completed', true);
-        const { data: userAttempts } = await supabase.from('attempt_results').select('assessment_id').eq('user_id', userProfile.id).eq('passed', true);
+        
+        const { data: courseAssessments } = await supabase
+          .from('assessments')
+          .select('id, title')
+          .eq('course_id', assessment.course_id);
+          
+        const { data: userProgress } = await supabase
+          .from('progress')
+          .select('content_id')
+          .eq('user_id', userProfile.id)
+          .eq('completed', true);
+          
+        const { data: userAttempts } = await supabase
+          .from('attempt_results')
+          .select('assessment_id')
+          .eq('user_id', userProfile.id)
+          .eq('passed', true);
 
         console.log('User progress:', userProgress?.length, 'Course assessments:', courseAssessments?.length, 'User attempts:', userAttempts?.length);
         
-        const allContentCompleted = courseContents?.every(c => userProgress?.some(p => p.content_id === c.id));
-        const allAssessmentsPassed = courseAssessments?.every(a => userAttempts?.some(att => att.assessment_id === a.id));
+        // Calcular porcentaje de completitud del contenido
+        const totalContents = courseContents?.length || 0;
+        const completedContentsCount = courseContents?.filter(c => 
+          userProgress?.some(p => p.content_id === c.id)
+        ).length || 0;
+        
+        const contentCompletionPercentage = totalContents > 0 ? 
+          Math.round((completedContentsCount / totalContents) * 100) : 0;
 
-        console.log('All content completed:', allContentCompleted, 'All assessments passed:', allAssessmentsPassed);
+        // Identificar contenido pendiente para mostrar en mensaje
+        const incompleteContents = courseContents?.filter(c => 
+          !userProgress?.some(p => p.content_id === c.id)
+        ) || [];
+        
+        // Identificar evaluaciones pendientes  
+        const incompleteAssessments = courseAssessments?.filter(a => 
+          !userAttempts?.some(att => att.assessment_id === a.id)
+        ) || [];
 
-        if (allContentCompleted && allAssessmentsPassed) {
-          // Preparar para mostrar modal de confirmación de nombre
+        // Verificar si todas las evaluaciones están aprobadas (obligatorio 100%)
+        const allAssessmentsPassed = incompleteAssessments.length === 0;
+
+        console.log('Content completion:', contentCompletionPercentage + '%', 'Incomplete contents:', incompleteContents.length, 'Incomplete assessments:', incompleteAssessments.length);
+
+        // Permitir generar certificado con 80% de contenido completado + todas las evaluaciones aprobadas
+        if (contentCompletionPercentage >= 80 && allAssessmentsPassed) {
+          // Todo está completo, generar certificado automáticamente
           try {
             const courseResponse = await supabase
               .from('courses')
@@ -196,6 +234,74 @@ export const AssessmentPlayer: React.FC = () => {
             console.error('Error preparing certificate generation:', error);
             alert('Error al preparar la generación del certificado.');
           }
+        } else {
+          // Mostrar mensaje detallado sobre contenido pendiente después de un breve retraso
+          setTimeout(() => {
+            let detailedMessage = "🎉 ¡Felicidades por aprobar la evaluación!\n\n";
+            detailedMessage += `📊 Progreso actual: ${contentCompletionPercentage}% del contenido completado\n\n`;
+            detailedMessage += "🎓 Para obtener tu certificado necesitas:\n";
+            detailedMessage += "• Al menos 80% del contenido completado ✅\n";
+            detailedMessage += "• Todas las evaluaciones aprobadas ✅\n\n";
+            
+            if (contentCompletionPercentage < 80) {
+              const contentsNeeded = Math.ceil((80 * totalContents / 100)) - completedContentsCount;
+              detailedMessage += `⚠️ Te faltan ${contentsNeeded} contenidos más para llegar al 80% requerido.\n\n`;
+            }
+            
+            if (incompleteAssessments.length > 0) {
+              detailedMessage += "📝 EVALUACIONES PENDIENTES (OBLIGATORIAS):\n";
+              detailedMessage += "Debes aprobar todas las evaluaciones:\n\n";
+              incompleteAssessments.forEach(assessment => {
+                detailedMessage += `   ✅ ${assessment.title}\n`;
+              });
+              detailedMessage += "\n";
+            }
+            
+            if (incompleteContents.length > 0 && contentCompletionPercentage < 80) {
+              detailedMessage += "📚 CONTENIDO PENDIENTE:\n";
+              detailedMessage += "Puedes completar cualquiera de las siguientes clases:\n\n";
+              
+              // Agrupar por módulo para mejor organización
+              const contentsByModule = incompleteContents.reduce((acc, content) => {
+                const module = courseModules?.find(m => m.id === content.module_id);
+                const moduleName = module?.title || 'Módulo desconocido';
+                if (!acc[moduleName]) acc[moduleName] = [];
+                acc[moduleName].push(content);
+                return acc;
+              }, {} as Record<string, typeof incompleteContents>);
+              
+              Object.entries(contentsByModule).forEach(([moduleName, contents]) => {
+                detailedMessage += `▶️ ${moduleName}:\n`;
+                contents.forEach(content => {
+                  const typeIconMap = {
+                    'video': '🎥',
+                    'document': '📄', 
+                    'presentation': '📊',
+                    'link': '🔗',
+                    'text': '📝',
+                    'audio': '🎵',
+                    'quiz': '❓',
+                    'reading': '📖'
+                  } as const;
+                  const typeIcon = typeIconMap[content.type as keyof typeof typeIconMap] || '📌';
+                  detailedMessage += `   ${typeIcon} ${content.title}\n`;
+                });
+                detailedMessage += "\n";
+              });
+            }
+            
+            detailedMessage += "📋 INSTRUCCIONES:\n";
+            detailedMessage += "1. Ve al curso haciendo clic en 'Volver al Curso'\n";
+            detailedMessage += "2. Navega por cada módulo y lección\n";
+            detailedMessage += "3. Después de ver/leer cada contenido, haz clic en el botón 'Marcar como Completado' ✅\n";
+            if (incompleteAssessments.length > 0) {
+              detailedMessage += "4. Completa y aprueba todas las evaluaciones pendientes\n";
+            }
+            detailedMessage += `${incompleteAssessments.length > 0 ? '5' : '4'}. Una vez que tengas 80% del contenido y todas las evaluaciones, regresa aquí para generar tu certificado\n\n`;
+            detailedMessage += "💡 TIP: Solo necesitas completar el 80% del contenido, ¡no es necesario completar todo!";
+            
+            alert(detailedMessage);
+          }, 1000); // Retraso de 1 segundo para que el usuario vea primero el mensaje de aprobación
         }
       }
 
@@ -217,31 +323,133 @@ export const AssessmentPlayer: React.FC = () => {
     if (!userProfile || !assessment) return;
     
     try {
-      // Verificar si el curso está completamente terminado
+      // Obtener información detallada del curso para verificar completitud
       const { data: courseModules } = await supabase
         .from('modules')
-        .select('id')
-        .eq('course_id', assessment.course_id);
+        .select('id, title, order_index')
+        .eq('course_id', assessment.course_id)
+        .order('order_index');
       
       const moduleIds = courseModules?.map(m => m.id) || [];
       
       const { data: courseContents, error: contentError } = moduleIds.length > 0 
-        ? await supabase.from('content').select('id').in('module_id', moduleIds)
+        ? await supabase
+            .from('content')
+            .select('id, title, module_id, order_index, type')
+            .in('module_id', moduleIds)
+            .order('order_index')
         : { data: [], error: null };
       
       if (contentError) {
         console.error('Error fetching course content:', contentError);
       }
       
-      const { data: courseAssessments } = await supabase.from('assessments').select('id').eq('course_id', assessment.course_id);
-      const { data: userProgress } = await supabase.from('progress').select('content_id').eq('user_id', userProfile.id).eq('completed', true);
-      const { data: userAttempts } = await supabase.from('attempt_results').select('assessment_id').eq('user_id', userProfile.id).eq('passed', true);
+      const { data: courseAssessments } = await supabase
+        .from('assessments')
+        .select('id, title')
+        .eq('course_id', assessment.course_id);
+        
+      const { data: userProgress } = await supabase
+        .from('progress')
+        .select('content_id')
+        .eq('user_id', userProfile.id)
+        .eq('completed', true);
+        
+      const { data: userAttempts } = await supabase
+        .from('attempt_results')
+        .select('assessment_id')
+        .eq('user_id', userProfile.id)
+        .eq('passed', true);
       
-      const allContentCompleted = courseContents?.every(c => userProgress?.some(p => p.content_id === c.id));
-      const allAssessmentsPassed = courseAssessments?.every(a => userAttempts?.some(att => att.assessment_id === a.id));
+      // Calcular porcentaje de completitud del contenido
+      const totalContents = courseContents?.length || 0;
+      const completedContentsCount = courseContents?.filter(c => 
+        userProgress?.some(p => p.content_id === c.id)
+      ).length || 0;
+      
+      const contentCompletionPercentage = totalContents > 0 ? 
+        Math.round((completedContentsCount / totalContents) * 100) : 0;
 
-      if (!allContentCompleted || !allAssessmentsPassed) {
-        alert('Debes completar todo el contenido del curso y aprobar todas las evaluaciones para generar el certificado.');
+      // Identificar contenido pendiente para mostrar en mensaje
+      const incompleteContents = courseContents?.filter(c => 
+        !userProgress?.some(p => p.content_id === c.id)
+      ) || [];
+      
+      // Identificar evaluaciones pendientes  
+      const incompleteAssessments = courseAssessments?.filter(a => 
+        !userAttempts?.some(att => att.assessment_id === a.id)
+      ) || [];
+
+      // Verificar si todas las evaluaciones están aprobadas (obligatorio 100%)
+      const allAssessmentsPassed = incompleteAssessments.length === 0;
+
+      // Verificar si cumple los requisitos: 80% contenido + todas las evaluaciones
+      if (contentCompletionPercentage < 80 || !allAssessmentsPassed) {
+        // Crear mensaje detallado con instrucciones específicas
+        let detailedMessage = "🎓 Para obtener tu certificado necesitas cumplir:\n\n";
+        detailedMessage += `📊 Progreso actual: ${contentCompletionPercentage}% del contenido completado\n\n`;
+        detailedMessage += "✅ Requisitos para el certificado:\n";
+        detailedMessage += `• Al menos 80% del contenido completado ${contentCompletionPercentage >= 80 ? '✅' : '❌'}\n`;
+        detailedMessage += `• Todas las evaluaciones aprobadas ${allAssessmentsPassed ? '✅' : '❌'}\n\n`;
+        
+        if (contentCompletionPercentage < 80) {
+          const contentsNeeded = Math.ceil((80 * totalContents / 100)) - completedContentsCount;
+          detailedMessage += `⚠️ Te faltan ${contentsNeeded} contenidos más para llegar al 80% requerido.\n\n`;
+        }
+        
+        if (incompleteAssessments.length > 0) {
+          detailedMessage += "📝 EVALUACIONES PENDIENTES (OBLIGATORIAS):\n";
+          detailedMessage += "Debes aprobar todas las evaluaciones:\n\n";
+          incompleteAssessments.forEach(assessment => {
+            detailedMessage += `   ✅ ${assessment.title}\n`;
+          });
+          detailedMessage += "\n";
+        }
+        
+        if (incompleteContents.length > 0 && contentCompletionPercentage < 80) {
+          detailedMessage += "📚 CONTENIDO PENDIENTE:\n";
+          detailedMessage += "Puedes completar cualquiera de las siguientes clases:\n\n";
+          
+          // Agrupar por módulo para mejor organización
+          const contentsByModule = incompleteContents.reduce((acc, content) => {
+            const module = courseModules?.find(m => m.id === content.module_id);
+            const moduleName = module?.title || 'Módulo desconocido';
+            if (!acc[moduleName]) acc[moduleName] = [];
+            acc[moduleName].push(content);
+            return acc;
+          }, {} as Record<string, typeof incompleteContents>);
+          
+          Object.entries(contentsByModule).forEach(([moduleName, contents]) => {
+            detailedMessage += `▶️ ${moduleName}:\n`;
+            contents.forEach(content => {
+              const typeIconMap = {
+                'video': '🎥',
+                'document': '📄', 
+                'presentation': '📊',
+                'link': '🔗',
+                'text': '📝',
+                'audio': '🎵',
+                'quiz': '❓',
+                'reading': '📖'
+              } as const;
+              const typeIcon = typeIconMap[content.type as keyof typeof typeIconMap] || '📌';
+              detailedMessage += `   ${typeIcon} ${content.title}\n`;
+            });
+            detailedMessage += "\n";
+          });
+        }
+        
+        detailedMessage += "📋 INSTRUCCIONES:\n";
+        detailedMessage += "1. Ve al curso haciendo clic en 'Volver al Curso'\n";
+        detailedMessage += "2. Navega por cada módulo y lección\n";
+        detailedMessage += "3. Después de ver/leer cada contenido, haz clic en el botón 'Marcar como Completado' ✅\n";
+        if (incompleteAssessments.length > 0) {
+          detailedMessage += "4. Completa y aprueba todas las evaluaciones pendientes\n";
+        }
+        detailedMessage += `${incompleteAssessments.length > 0 ? '5' : '4'}. Una vez que tengas 80% del contenido y todas las evaluaciones, regresa aquí para generar tu certificado\n\n`;
+        detailedMessage += "💡 TIP: Solo necesitas completar el 80% del contenido, ¡no es necesario completar todo!";
+        
+        alert(detailedMessage);
         return;
       }
 
@@ -466,7 +674,7 @@ export const AssessmentPlayer: React.FC = () => {
                     <div>
                       <h3 className="font-semibold text-blue-900">Generar Certificado</h3>
                       <p className="text-blue-700 text-sm">
-                        Has completado exitosamente esta evaluación. Genera tu certificado oficial.
+                        Has completado exitosamente esta evaluación. Para generar tu certificado necesitas: 80% del contenido completado + todas las evaluaciones aprobadas.
                       </p>
                     </div>
                   </div>
