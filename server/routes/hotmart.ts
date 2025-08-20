@@ -1,0 +1,214 @@
+import express from 'express';
+import { HotmartService, HotmartPurchaseData } from '../services/hotmartService.js';
+import supabase from '../lib/supabase.js';
+
+const router = express.Router();
+
+// Clave API para validar requests desde tu backend
+const API_SECRET_KEY = process.env.VITE_HOTMART_API_SECRET || 'tu-clave-secreta-aqui';
+
+// Middleware para validar autenticación
+const validateAuth = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const authHeader = req.headers.authorization;
+  
+  if (!authHeader || authHeader !== `Bearer ${API_SECRET_KEY}`) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  
+  next();
+};
+
+// Middleware para validar datos requeridos de Hotmart
+const validatePurchaseData = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+  const purchaseData: HotmartPurchaseData = req.body;
+  
+  // Validar datos requeridos
+  const requiredFields = ['email', 'full_name', 'course_id'];
+  const missingFields = requiredFields.filter(field => !purchaseData[field as keyof HotmartPurchaseData]);
+  
+  if (missingFields.length > 0) {
+    return res.status(400).json({ 
+      error: 'Campos requeridos faltantes', 
+      missing_fields: missingFields 
+    });
+  }
+
+  // Validar formato de email
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(purchaseData.email)) {
+    return res.status(400).json({ error: 'Formato de email inválido' });
+  }
+
+  next();
+};
+
+/**
+ * POST /api/hotmart/process-purchase
+ * Procesar compra completa (crear usuario + inscribir)
+ */
+router.post('/process-purchase', validateAuth, validatePurchaseData, async (req: express.Request, res: express.Response) => {
+  try {
+    const purchaseData: HotmartPurchaseData = req.body;
+    
+    // Procesar compra completa
+    const result = await HotmartService.processPurchase(purchaseData);
+
+    res.status(201).json({ 
+      success: true, 
+      data: {
+        user: {
+          id: result.user.id,
+          email: result.user.email,
+          full_name: result.user.full_name,
+          role: result.user.role
+        },
+        enrollment: {
+          id: result.enrollment.id,
+          user_id: result.enrollment.user_id,
+          course_id: result.enrollment.course_id,
+          enrolled_at: result.enrollment.enrolled_at,
+          progress_percentage: result.enrollment.progress_percentage
+        },
+        is_new_user: result.isNewUser
+      },
+      message: `Usuario ${result.isNewUser ? 'creado' : 'encontrado'} e inscrito exitosamente`
+    });
+
+  } catch (error) {
+    console.error('Error en process-purchase:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
+ * POST /api/hotmart/create-user
+ * Crear usuario desde compra de Hotmart
+ */
+router.post('/create-user', validateAuth, validatePurchaseData, async (req: express.Request, res: express.Response) => {
+  try {
+    const purchaseData: HotmartPurchaseData = req.body;
+    
+    // Crear usuario
+    const user = await HotmartService.createUserFromPurchase(purchaseData);
+
+    res.status(201).json({ 
+      success: true, 
+      user: {
+        id: user.id,
+        email: user.email,
+        full_name: user.full_name,
+        role: user.role
+      },
+      message: 'Usuario creado exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error en create-user:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
+ * POST /api/hotmart/enroll-user
+ * Inscribir usuario en curso
+ */
+router.post('/enroll-user', validateAuth, async (req: express.Request, res: express.Response) => {
+  try {
+    const { user_id, course_id } = req.body;
+
+    // Validar datos requeridos
+    if (!user_id || !course_id) {
+      return res.status(400).json({ 
+        error: 'user_id y course_id son requeridos' 
+      });
+    }
+
+    // Inscribir usuario
+    const enrollment = await HotmartService.enrollUserInCourse(user_id, course_id);
+
+    res.status(201).json({ 
+      success: true, 
+      enrollment: {
+        id: enrollment.id,
+        user_id: enrollment.user_id,
+        course_id: enrollment.course_id,
+        enrolled_at: enrollment.enrolled_at,
+        progress_percentage: enrollment.progress_percentage
+      },
+      message: 'Usuario inscrito exitosamente'
+    });
+
+  } catch (error) {
+    console.error('Error en enroll-user:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
+ * GET /api/courses/:courseId/validate
+ * Validar que un curso existe y está publicado
+ */
+router.get('/courses/:courseId/validate', async (req: express.Request, res: express.Response) => {
+  try {
+    const { courseId } = req.params;
+    
+    const { data: course, error } = await supabase
+      .from('courses')
+      .select('id, title, is_published')
+      .eq('id', courseId)
+      .eq('is_published', true)
+      .single();
+
+    if (error || !course) {
+      return res.status(404).json({ 
+        error: 'Curso no encontrado o no publicado',
+        course_id: courseId
+      });
+    }
+
+    res.json({ 
+      success: true,
+      course: {
+        id: course.id,
+        title: course.title,
+        is_published: course.is_published
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en validate course:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
+ * GET /api/hotmart/test
+ * Endpoint de prueba para verificar que la API funciona
+ */
+router.get('/test', (req: express.Request, res: express.Response) => {
+  res.json({
+    success: true,
+    message: 'Hotmart API funcionando correctamente',
+    timestamp: new Date().toISOString(),
+    endpoints: [
+      'POST /api/hotmart/process-purchase',
+      'POST /api/hotmart/create-user', 
+      'POST /api/hotmart/enroll-user',
+      'GET /api/hotmart/courses/:courseId/validate'
+    ]
+  });
+});
+
+export default router;
