@@ -44,6 +44,22 @@ export const useAuth = () => {
         };
       }
 
+      // 🆕 REGISTRAR LOGIN EN BASE DE DATOS
+      try {
+        await supabase
+          .from('users')
+          .update({ 
+            last_login_at: new Date().toISOString(),
+            login_count: supabase.raw('login_count + 1')
+          })
+          .eq('id', data.id);
+
+        console.log('✅ Login registrado en BD');
+      } catch (loginTrackError) {
+        console.error('❌ Error registrando login:', loginTrackError);
+        // No fallar el login por esto, solo loggearlo
+      }
+
       // Store user in localStorage and state
       localStorage.setItem('auth_user', JSON.stringify(data));
       setUser(data);
