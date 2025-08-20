@@ -1049,21 +1049,40 @@ export const AssessmentPlayer: React.FC = () => {
 
       {/* Modal de confirmación de nombre para certificado */}
       {certificateModalData?.isOpen && (
-        <div className="fixed inset-0 z-[70] bg-black bg-opacity-50 flex items-center justify-center">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold mb-4">🚀 MODAL DE PRUEBA FUNCIONANDO!</h2>
-            <p className="mb-4">Curso: {certificateModalData.courseName}</p>
-            <p className="mb-4">Usuario: {userProfile?.full_name || 'Sin nombre'}</p>
+        <div 
+          className="fixed inset-0 bg-red-500 bg-opacity-75 flex items-center justify-center"
+          style={{ zIndex: 9999 }}
+          onClick={(e) => {
+            console.log('🔴 Click en backdrop del modal');
+            e.stopPropagation();
+          }}
+        >
+          <div 
+            className="bg-white rounded-lg p-8 max-w-md w-full mx-4 border-4 border-red-500"
+            onClick={(e) => {
+              console.log('🔴 Click en contenido del modal');
+              e.stopPropagation();
+            }}
+          >
+            <h2 className="text-2xl font-bold mb-4 text-red-600">🚀 MODAL DE PRUEBA FUNCIONANDO!</h2>
+            <p className="mb-4 text-lg">Curso: {certificateModalData.courseName}</p>
+            <p className="mb-4 text-lg">Usuario: {userProfile?.full_name || 'Sin nombre'}</p>
             <div className="flex gap-2">
               <button
-                onClick={handleCancelCertificateGeneration}
-                className="px-4 py-2 bg-gray-500 text-white rounded"
+                onClick={() => {
+                  console.log('🔴 Click en Cancelar');
+                  handleCancelCertificateGeneration();
+                }}
+                className="px-6 py-3 bg-gray-500 text-white rounded text-lg"
               >
                 Cancelar
               </button>
               <button
-                onClick={() => handleConfirmNameAndGenerateCertificate(userProfile?.full_name || 'Usuario')}
-                className="px-4 py-2 bg-blue-500 text-white rounded"
+                onClick={() => {
+                  console.log('🔴 Click en Generar');
+                  handleConfirmNameAndGenerateCertificate(userProfile?.full_name || 'Usuario');
+                }}
+                className="px-6 py-3 bg-blue-500 text-white rounded text-lg"
                 disabled={generatingCertificate}
               >
                 {generatingCertificate ? 'Generando...' : 'Generar Certificado'}
