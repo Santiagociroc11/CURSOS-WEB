@@ -206,6 +206,73 @@ router.get('/courses/:courseId/validate', async (req: express.Request, res: expr
 });
 
 /**
+ * POST /api/hotmart/reset-password
+ * Resetear contraseña de usuario (la asigna igual al email)
+ */
+router.post('/reset-password', async (req: express.Request, res: express.Response) => {
+  try {
+    const { email } = req.body;
+
+    // Validar que el email esté presente
+    if (!email) {
+      return res.status(400).json({ 
+        error: 'Email es requerido' 
+      });
+    }
+
+    // Validar formato de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: 'Formato de email inválido' });
+    }
+
+    // Verificar si el usuario existe
+    const { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email, full_name')
+      .eq('email', email)
+      .single();
+
+    if (userError || !user) {
+      return res.status(404).json({ 
+        error: 'Usuario no encontrado',
+        message: 'No existe un usuario registrado con ese email'
+      });
+    }
+
+    // Resetear contraseña al email del usuario
+    const { error: updateError } = await supabase
+      .from('users')
+      .update({ 
+        password: email,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      throw new Error(`Error actualizando contraseña: ${updateError.message}`);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Contraseña restablecida exitosamente',
+      data: {
+        email: user.email,
+        full_name: user.full_name,
+        message: 'Tu contraseña ahora es tu email'
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en reset-password:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
  * GET /api/hotmart/test
  * Endpoint de prueba para verificar que la API funciona
  */
@@ -218,6 +285,7 @@ router.get('/test', (req: express.Request, res: express.Response) => {
       'POST /api/hotmart/process-purchase',
       'POST /api/hotmart/create-user', 
       'POST /api/hotmart/enroll-user',
+      'POST /api/hotmart/reset-password',
       'GET /api/hotmart/courses/:courseId/validate'
     ]
   });
