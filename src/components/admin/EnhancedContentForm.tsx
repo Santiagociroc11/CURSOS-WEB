@@ -3,7 +3,6 @@ import { Content } from '../../types/database';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { RichTextEditor } from '../common/RichTextEditor';
-import { ShortcodeExamples } from './ShortcodeExamples';
 import { 
   Play, 
   FileText, 
@@ -363,11 +362,11 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
           <div className="mt-2 text-xs text-gray-500">
             💡 <strong>Consejos:</strong> Usa la barra de herramientas para formatear texto, insertar enlaces e imágenes. 
             <br />
-            🎯 <strong>Para botones interactivos:</strong> Haz clic en el icono del botón{' '}
+            🎯 <strong>Para botones interactivos:</strong> Haz clic en{' '}
             <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
-              📱
+              "Agregar Botón Interactivo"
             </span>{' '}
-            en la barra de herramientas.
+            debajo del editor.
           </div>
         </div>
       ) : (
