@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Content } from '../../types/database';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { RichTextEditor } from '../common/RichTextEditor';
 
 interface ContentFormProps {
   content: Content | null;
@@ -67,14 +68,16 @@ export const ContentForm: React.FC<ContentFormProps> = ({ content, onSave, onCan
 
       {formData.type === 'text' ? (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Contenido de Texto</label>
-          <textarea
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            rows={5}
+          <label className="block text-sm font-medium text-gray-700 mb-2">Contenido de Texto Enriquecido</label>
+          <RichTextEditor
             value={formData.content_text || ''}
-            onChange={(e) => setFormData({ ...formData, content_text: e.target.value, content_url: '' })}
-            placeholder="Escribe el contenido aquí..."
+            onChange={(value) => setFormData({ ...formData, content_text: value, content_url: '' })}
+            placeholder="Escribe tu contenido aquí... Puedes usar formato enriquecido, enlaces, listas y más."
+            height={250}
           />
+          <div className="mt-2 text-xs text-gray-500">
+            💡 Puedes agregar enlaces, imágenes, listas, texto en negrita/cursiva, y botones usando HTML.
+          </div>
         </div>
       ) : (
         <Input

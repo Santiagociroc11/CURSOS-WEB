@@ -7,6 +7,7 @@ import { Button } from '../ui/Button';
 import { Course, Module, Content, Progress, Assessment } from '../../types/database';
 import supabase from '../../lib/supabase';
 import { useAuthContext } from '../../contexts/AuthContext';
+import '../../styles/rich-content.css';
 
 // Type definition for a module with its content
 interface ModuleWithContent extends Module {
@@ -1185,10 +1186,10 @@ export const CoursePlayer: React.FC = () => {
                 
                 {/* Text content goes here directly instead of at the bottom */}
                 {currentContent.content_text && (
-                  <div className="prose prose-lg prose-invert max-w-none">
+                  <div className="rich-content-container">
                     <div 
                       dangerouslySetInnerHTML={{ __html: currentContent.content_text }} 
-                      className="text-gray-300 leading-relaxed"
+                      className="rich-content-text"
                     />
                   </div>
                 )}

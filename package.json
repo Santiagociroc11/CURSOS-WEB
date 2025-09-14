@@ -18,9 +18,11 @@
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "lucide-react": "^0.344.0",
+    "quill": "^2.0.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-player": "^3.3.1",
+    "react-quill": "^2.0.0",
     "react-router-dom": "^7.8.1",
     "recharts": "^3.1.2"
   },

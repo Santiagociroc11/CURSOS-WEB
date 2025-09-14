@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Content } from '../../types/database';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { RichTextEditor } from '../common/RichTextEditor';
+import { ContentExamples } from './ContentExamples';
 import { 
   Play, 
   FileText, 
@@ -137,7 +139,9 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
         break;
       case 'content_text':
         if (type === 'text' && !value?.trim()) return 'El contenido de texto es requerido';
-        if (type === 'text' && value && value.length < 10) return 'El contenido debe tener al menos 10 caracteres';
+        if (type === 'text' && value && value.replace(/<[^>]*>/g, '').trim().length < 10) {
+          return 'El contenido debe tener al menos 10 caracteres de texto (sin contar HTML)';
+        }
         break;
       case 'duration_minutes':
         if (value < 0) return 'La duración no puede ser negativa';
@@ -346,30 +350,30 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
       {/* Content Input */}
       {formData.type === 'text' ? (
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Contenido de Texto *
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Contenido de Texto Enriquecido *
           </label>
-          <div className="relative">
-            <textarea
-              className={`w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 transition-colors min-h-[120px] ${
-                errors.content_text 
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500' 
-                  : 'border-gray-300 focus:ring-blue-500 focus:border-blue-500'
-              }`}
-              value={formData.content_text || ''}
-              onChange={(e) => updateField('content_text', e.target.value)}
-              placeholder="Escribe el contenido aquí... Puedes usar Markdown para formatear el texto."
-            />
-            <div className="absolute top-2 right-2">
-              {getFieldIcon('content_text')}
-            </div>
+          <RichTextEditor
+            value={formData.content_text || ''}
+            onChange={(value) => updateField('content_text', value)}
+            placeholder="Escribe tu contenido aquí... Puedes usar formato enriquecido, enlaces, listas, imágenes y más."
+            height={300}
+            error={errors.content_text}
+          />
+          <div className="mt-2 text-xs text-gray-500">
+            💡 <strong>Consejos:</strong> Puedes agregar enlaces, imágenes, listas, texto en negrita/cursiva, 
+            y botones usando HTML. Ejemplo: &lt;button onclick="window.open('https://ejemplo.com')"&gt;Visitar sitio&lt;/button&gt;
           </div>
-          {errors.content_text && (
-            <p className="mt-1 text-sm text-red-600 flex items-center">
-              <AlertCircle className="h-4 w-4 mr-1" />
-              {errors.content_text}
-            </p>
-          )}
+          
+          {/* Ejemplos de contenido */}
+          <div className="mt-4">
+            <ContentExamples 
+              onInsertExample={(html) => {
+                const currentContent = formData.content_text || '';
+                updateField('content_text', currentContent + '\n\n' + html);
+              }}
+            />
+          </div>
         </div>
       ) : (
         <div>
