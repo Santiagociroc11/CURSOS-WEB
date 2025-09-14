@@ -77,7 +77,7 @@ export const ContentForm: React.FC<ContentFormProps> = ({ content, onSave, onCan
           />
           <div className="mt-2 text-xs text-gray-500">
             💡 Usa la barra de herramientas para formatear texto. Para botones interactivos, 
-            usa <code>data-action="open-link" data-url="https://ejemplo.com"</code>
+            haz clic en el icono del botón 📱 en la barra de herramientas.
           </div>
         </div>
       ) : (

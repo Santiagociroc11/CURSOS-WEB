@@ -362,17 +362,12 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
           />
           <div className="mt-2 text-xs text-gray-500">
             💡 <strong>Consejos:</strong> Usa la barra de herramientas para formatear texto, insertar enlaces e imágenes. 
-            Para botones interactivos, usa los ejemplos de abajo.
-          </div>
-          
-          {/* Ejemplos de contenido colapsables */}
-          <div className="mt-3">
-            <ContentExamplesCollapsible 
-              onInsertExample={(html) => {
-                const currentContent = formData.content_text || '';
-                updateField('content_text', currentContent + '\n\n' + html);
-              }}
-            />
+            <br />
+            🎯 <strong>Para botones interactivos:</strong> Haz clic en el icono del botón{' '}
+            <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+              📱
+            </span>{' '}
+            en la barra de herramientas.
           </div>
         </div>
       ) : (
