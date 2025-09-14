@@ -7,141 +7,8 @@ import { Button } from '../ui/Button';
 import { Course, Module, Content, Progress, Assessment } from '../../types/database';
 import supabase from '../../lib/supabase';
 import { useAuthContext } from '../../contexts/AuthContext';
+import { RichContentRenderer } from './RichContentRenderer';
 import '../../styles/rich-content.css';
-
-// Estilos inline para asegurar que los botones se muestren correctamente
-const richContentStyles = `
-  <style>
-    .rich-content-text button {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-      color: white !important;
-      padding: 0.5rem 1rem !important;
-      border-radius: 0.5rem !important;
-      border: none !important;
-      cursor: pointer !important;
-      display: inline-block !important;
-      margin: 0.5rem 0.5rem 0.5rem 0 !important;
-      font-weight: 500 !important;
-      transition: all 0.2s ease !important;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    .rich-content-text button:hover {
-      background: linear-gradient(135deg, #1d4ed8, #1e40af) !important;
-      transform: translateY(-1px) !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    .rich-content-text button:active {
-      transform: translateY(0) !important;
-    }
-    
-    .rich-content-text .btn-primary {
-      background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-    }
-    
-    .rich-content-text .btn-secondary {
-      background: linear-gradient(135deg, #6b7280, #4b5563) !important;
-    }
-    
-    .rich-content-text .btn-success {
-      background: linear-gradient(135deg, #10b981, #059669) !important;
-    }
-    
-    .rich-content-text .btn-warning {
-      background: linear-gradient(135deg, #f59e0b, #d97706) !important;
-    }
-    
-    .rich-content-text .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626) !important;
-    }
-    
-    .rich-content-text .btn-outline {
-      background: transparent !important;
-      border: 2px solid #3b82f6 !important;
-      color: #3b82f6 !important;
-    }
-    
-    .rich-content-text .btn-outline:hover {
-      background: #3b82f6 !important;
-      color: white !important;
-    }
-    
-    .rich-content-text a {
-      color: #60a5fa !important;
-      text-decoration: underline !important;
-    }
-    
-    .rich-content-text a:hover {
-      color: #93c5fd !important;
-    }
-    
-    .rich-content-text h1, .rich-content-text h2, .rich-content-text h3,
-    .rich-content-text h4, .rich-content-text h5, .rich-content-text h6 {
-      color: #f9fafb !important;
-      margin-bottom: 1rem !important;
-      margin-top: 1.5rem !important;
-    }
-    
-    .rich-content-text p {
-      color: #d1d5db !important;
-      margin-bottom: 1rem !important;
-    }
-    
-    .rich-content-text ul, .rich-content-text ol {
-      color: #d1d5db !important;
-      margin-bottom: 1rem !important;
-      padding-left: 1.5rem !important;
-    }
-    
-    .rich-content-text li {
-      color: #d1d5db !important;
-      margin-bottom: 0.5rem !important;
-    }
-    
-    .rich-content-text strong, .rich-content-text b {
-      color: #f9fafb !important;
-      font-weight: bold !important;
-    }
-    
-    .rich-content-text blockquote {
-      border-left: 4px solid #3b82f6 !important;
-      padding-left: 1rem !important;
-      margin: 1rem 0 !important;
-      font-style: italic !important;
-      background-color: rgba(31, 41, 55, 0.5) !important;
-      border-radius: 0 0.5rem 0.5rem 0 !important;
-      padding: 0.5rem 0 0.5rem 1rem !important;
-    }
-    
-    .rich-content-text code {
-      background-color: #1f2937 !important;
-      color: #4ade80 !important;
-      padding: 0.25rem 0.5rem !important;
-      border-radius: 0.25rem !important;
-      font-size: 0.875rem !important;
-    }
-    
-    .rich-content-text pre {
-      background-color: #1f2937 !important;
-      padding: 1rem !important;
-      border-radius: 0.5rem !important;
-      overflow-x: auto !important;
-      margin: 1rem 0 !important;
-    }
-    
-    .rich-content-text img {
-      max-width: 100% !important;
-      height: auto !important;
-      border-radius: 0.5rem !important;
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-      margin: 1rem 0 !important;
-      display: block !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-    }
-  </style>
-`;
 
 // Type definition for a module with its content
 interface ModuleWithContent extends Module {
@@ -360,51 +227,6 @@ export const CoursePlayer: React.FC = () => {
 
 
   useEffect(() => { fetchCourseData(); }, [fetchCourseData]);
-
-  // Asegurar que los estilos de botones se apliquen correctamente
-  useEffect(() => {
-    const applyButtonStyles = () => {
-      const buttons = document.querySelectorAll('.rich-content-text button');
-      buttons.forEach(button => {
-        const htmlButton = button as HTMLButtonElement;
-        htmlButton.style.display = 'inline-block';
-        htmlButton.style.margin = '0.5rem 0.5rem 0.5rem 0';
-        htmlButton.style.padding = '0.5rem 1rem';
-        htmlButton.style.borderRadius = '0.5rem';
-        htmlButton.style.border = 'none';
-        htmlButton.style.cursor = 'pointer';
-        htmlButton.style.fontWeight = '500';
-        htmlButton.style.transition = 'all 0.2s ease';
-        htmlButton.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
-        
-        // Aplicar colores según la clase
-        if (htmlButton.classList.contains('btn-primary')) {
-          htmlButton.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-        } else if (htmlButton.classList.contains('btn-secondary')) {
-          htmlButton.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
-        } else if (htmlButton.classList.contains('btn-success')) {
-          htmlButton.style.background = 'linear-gradient(135deg, #10b981, #059669)';
-        } else if (htmlButton.classList.contains('btn-warning')) {
-          htmlButton.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
-        } else if (htmlButton.classList.contains('btn-danger')) {
-          htmlButton.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-        } else if (htmlButton.classList.contains('btn-outline')) {
-          htmlButton.style.background = 'transparent';
-          htmlButton.style.border = '2px solid #3b82f6';
-          htmlButton.style.color = '#3b82f6';
-        } else {
-          htmlButton.style.background = 'linear-gradient(135deg, #3b82f6, #1d4ed8)';
-        }
-        
-        htmlButton.style.color = 'white';
-      });
-    };
-
-    // Aplicar estilos cuando cambie el contenido
-    if (currentContent?.content_text) {
-      setTimeout(applyButtonStyles, 100);
-    }
-  }, [currentContent]);
 
   useEffect(() => {
     if (modules.length > 0 && progress.length >= 0 && assessments.length >= 0) {
@@ -1365,32 +1187,7 @@ export const CoursePlayer: React.FC = () => {
                 
                 {/* Text content goes here directly instead of at the bottom */}
                 {currentContent.content_text && (
-                  <>
-                    <div dangerouslySetInnerHTML={{ __html: richContentStyles }} />
-                    <div className="rich-content-container p-6 bg-gray-900/50 rounded-lg border border-gray-700">
-                      <div 
-                        dangerouslySetInnerHTML={{ 
-                          __html: currentContent.content_text 
-                        }} 
-                        className="rich-content-text"
-                        style={{
-                          color: '#d1d5db',
-                          lineHeight: '1.7',
-                          fontSize: '16px'
-                        }}
-                        onLoad={() => {
-                          console.log('Rich content loaded:', currentContent.content_text);
-                          // Asegurar que los botones tengan los estilos correctos
-                          const buttons = document.querySelectorAll('.rich-content-text button');
-                          buttons.forEach(button => {
-                            console.log('Button found:', button);
-                            button.style.display = 'inline-block';
-                            button.style.margin = '0.5rem 0.5rem 0.5rem 0';
-                          });
-                        }}
-                      />
-                    </div>
-                  </>
+                  <RichContentRenderer htmlContent={currentContent.content_text} />
                 )}
                 
                 {/* If no content_text, show a placeholder */}

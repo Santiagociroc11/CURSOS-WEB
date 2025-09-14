@@ -76,7 +76,8 @@ export const ContentForm: React.FC<ContentFormProps> = ({ content, onSave, onCan
             height={250}
           />
           <div className="mt-2 text-xs text-gray-500">
-            💡 Puedes agregar enlaces, imágenes, listas, texto en negrita/cursiva, y botones usando HTML.
+            💡 Usa la barra de herramientas para formatear texto. Para botones interactivos, 
+            usa <code>data-action="open-link" data-url="https://ejemplo.com"</code>
           </div>
         </div>
       ) : (

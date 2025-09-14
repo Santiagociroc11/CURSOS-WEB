@@ -3,8 +3,7 @@ import { Content } from '../../types/database';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { RichTextEditor } from '../common/RichTextEditor';
-import { ContentExamples } from './ContentExamples';
-import { TestButtonComponent } from './TestButtonComponent';
+import { ShortcodeExamples } from './ShortcodeExamples';
 import { 
   Play, 
   FileText, 
@@ -362,23 +361,18 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
             error={errors.content_text}
           />
           <div className="mt-2 text-xs text-gray-500">
-            💡 <strong>Consejos:</strong> Puedes agregar enlaces, imágenes, listas, texto en negrita/cursiva, 
-            y botones usando HTML. Ejemplo: &lt;button onclick="window.open('https://ejemplo.com')"&gt;Visitar sitio&lt;/button&gt;
+            💡 <strong>Consejos:</strong> Usa la barra de herramientas para formatear texto, insertar enlaces e imágenes. 
+            Para botones interactivos, usa los ejemplos de abajo.
           </div>
           
-          {/* Ejemplos de contenido */}
-          <div className="mt-4">
-            <ContentExamples 
+          {/* Ejemplos de contenido colapsables */}
+          <div className="mt-3">
+            <ContentExamplesCollapsible 
               onInsertExample={(html) => {
                 const currentContent = formData.content_text || '';
                 updateField('content_text', currentContent + '\n\n' + html);
               }}
             />
-          </div>
-          
-          {/* Componente de prueba */}
-          <div className="mt-6">
-            <TestButtonComponent />
           </div>
         </div>
       ) : (
