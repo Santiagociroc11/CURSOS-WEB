@@ -4,6 +4,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { RichTextEditor } from '../common/RichTextEditor';
 import { ContentExamples } from './ContentExamples';
+import { TestButtonComponent } from './TestButtonComponent';
 import { 
   Play, 
   FileText, 
@@ -373,6 +374,11 @@ export const EnhancedContentForm: React.FC<EnhancedContentFormProps> = ({
                 updateField('content_text', currentContent + '\n\n' + html);
               }}
             />
+          </div>
+          
+          {/* Componente de prueba */}
+          <div className="mt-6">
+            <TestButtonComponent />
           </div>
         </div>
       ) : (
