@@ -12,6 +12,7 @@ import {
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { QueueMonitor } from './QueueMonitor';
 import supabase from '../../lib/supabase';
 
 interface DashboardStats {

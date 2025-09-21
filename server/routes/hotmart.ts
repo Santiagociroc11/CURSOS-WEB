@@ -1,5 +1,6 @@
 import express from 'express';
 import { HotmartService, HotmartPurchaseData } from '../services/hotmartService.js';
+import { queueManager } from '../services/queueManager.js';
 import supabase from '../lib/supabase.js';
 
 const router = express.Router();
@@ -44,14 +45,16 @@ const validatePurchaseData = (req: express.Request, res: express.Response, next:
 
 /**
  * POST /api/hotmart/process-purchase
- * Procesar compra completa (crear usuario + inscribir)
+ * Procesar compra completa (crear usuario + inscribir) - CON COLA
  */
 router.post('/process-purchase', validateAuth, validatePurchaseData, async (req: express.Request, res: express.Response) => {
   try {
     const purchaseData: HotmartPurchaseData = req.body;
     
-    // Procesar compra completa
-    const result = await HotmartService.processPurchase(purchaseData);
+    console.log(`[API] Recibida compra de Hotmart para transacción: ${purchaseData.transaction_id}`);
+    
+    // Encolar compra para procesamiento asíncrono
+    const result = await queueManager.enqueue(purchaseData);
 
     const statusCode = result.transactionAlreadyProcessed ? 200 : 201;
     const message = result.transactionAlreadyProcessed 
@@ -61,6 +64,8 @@ router.post('/process-purchase', validateAuth, validatePurchaseData, async (req:
         : !result.isNewUser && result.isNewEnrollment
           ? 'Usuario existente inscrito exitosamente'
           : 'Usuario existente ya estaba inscrito - transacción registrada';
+
+    console.log(`[API] ✅ Compra procesada exitosamente: ${purchaseData.transaction_id}`);
 
     res.status(statusCode).json({ 
       success: true, 
@@ -133,17 +138,13 @@ router.post('/create-user', validateAuth, validatePurchaseData, async (req: expr
 router.post('/enroll-user', validateAuth, async (req: express.Request, res: express.Response) => {
   try {
     const { user_id, course_id } = req.body;
-
-    // Validar datos requeridos
+    
     if (!user_id || !course_id) {
-      return res.status(400).json({ 
-        error: 'user_id y course_id son requeridos' 
-      });
+      return res.status(400).json({ error: 'user_id y course_id son requeridos' });
     }
-
-    // Inscribir usuario
-    const enrollment = await HotmartService.enrollUserInCourse(user_id, course_id);
-
+    
+    const enrollment = await HotmartService.enrollUserInCourseWithTransaction(user_id, course_id);
+    
     res.status(201).json({ 
       success: true, 
       enrollment: {
@@ -151,7 +152,8 @@ router.post('/enroll-user', validateAuth, async (req: express.Request, res: expr
         user_id: enrollment.user_id,
         course_id: enrollment.course_id,
         enrolled_at: enrollment.enrolled_at,
-        progress_percentage: enrollment.progress_percentage
+        progress_percentage: enrollment.progress_percentage,
+        transaction_id: enrollment.transaction_id
       },
       message: 'Usuario inscrito exitosamente'
     });
@@ -164,6 +166,70 @@ router.post('/enroll-user', validateAuth, async (req: express.Request, res: expr
     });
   }
 });
+
+/**
+ * GET /api/hotmart/queue/stats
+ * Obtener estadísticas de la cola de procesamiento
+ */
+router.get('/queue/stats', validateAuth, async (req: express.Request, res: express.Response) => {
+  try {
+    const stats = queueManager.getStats();
+    
+    res.json({
+      success: true,
+      data: stats,
+      message: 'Estadísticas de la cola obtenidas'
+    });
+
+  } catch (error) {
+    console.error('Error obteniendo stats de cola:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
+/**
+ * GET /api/hotmart/queue/job/:jobId
+ * Obtener resultado de un job específico
+ */
+router.get('/queue/job/:jobId', validateAuth, async (req: express.Request, res: express.Response) => {
+  try {
+    const { jobId } = req.params;
+    
+    const result = queueManager.getJobResult(jobId);
+    const error = queueManager.getJobError(jobId);
+    
+    if (result) {
+      res.json({
+        success: true,
+        data: result,
+        message: 'Job completado exitosamente'
+      });
+    } else if (error) {
+      res.json({
+        success: false,
+        error: error,
+        message: 'Job falló'
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: 'Job no encontrado o aún en procesamiento',
+        message: 'El job no existe o aún está siendo procesado'
+      });
+    }
+
+  } catch (error) {
+    console.error('Error obteniendo job:', error);
+    res.status(500).json({ 
+      error: 'Error interno del servidor',
+      message: error instanceof Error ? error.message : 'Error desconocido'
+    });
+  }
+});
+
 
 /**
  * GET /api/courses/:courseId/validate

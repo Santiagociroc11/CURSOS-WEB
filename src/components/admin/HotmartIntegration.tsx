@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, AlertTriangle, Settings, ExternalLink, BookOpen, Code, Eye, EyeOff, FileText } from 'lucide-react';
+import { Copy, Check, AlertTriangle, Settings, ExternalLink, BookOpen, Code, Eye, EyeOff, FileText, Activity } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '../ui/Card';
 import { Button } from '../ui/Button';
 import supabase from '../../lib/supabase';
 import { Course } from '../../types/database';
 import { SwaggerDocs } from './SwaggerDocs';
+import { QueueMonitor } from './QueueMonitor';
 
 interface CourseWithId extends Course {
   enrollment_count?: number;
 }
 
 export const HotmartIntegration: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'config' | 'docs'>('config');
+  const [activeTab, setActiveTab] = useState<'config' | 'docs' | 'monitor'>('config');
   const [courses, setCourses] = useState<CourseWithId[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -136,6 +137,17 @@ export const HotmartIntegration: React.FC = () => {
             <span>Configuración</span>
           </button>
           <button
+            onClick={() => setActiveTab('monitor')}
+            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              activeTab === 'monitor'
+                ? 'bg-white text-gray-900 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <Activity className="h-4 w-4" />
+            <span>Monitor de Cola</span>
+          </button>
+          <button
             onClick={() => setActiveTab('docs')}
             className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               activeTab === 'docs'
@@ -152,6 +164,8 @@ export const HotmartIntegration: React.FC = () => {
       {/* Tab Content */}
       {activeTab === 'docs' ? (
         <SwaggerDocs />
+      ) : activeTab === 'monitor' ? (
+        <QueueMonitor />
       ) : (
         <div className="space-y-8">
 
